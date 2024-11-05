@@ -7,8 +7,8 @@
 #include <string>
 
 enum class GraphMode : u8 {
-    DrawVertices,
-    DrawEdges
+    EditVertices,
+    DrawEdges,
 };
 
 void RenderGraph(const gpx::Graph& graph) {
@@ -27,14 +27,8 @@ void RenderGraph(const gpx::Graph& graph) {
         DrawCircleLines(from.x - 3, from.y - 3, 8, {255, 255, 255, 255});
     }
 
-    usize i = 0;
     for (const gpx::Vertex& vertex : vertices) {
         DrawCircle(vertex.x, vertex.y, vertex.size, Color{255, 255, 255, 255}); 
-
-        std::string degree = "deg(): ";
-        degree.append(std::to_string(graph.DegreeOf(i)));
-        DrawText(degree.c_str(), vertex.x, vertex.y, 4, {255, 0, 0, 255});
-        ++i;
     }
 }
 
@@ -47,8 +41,9 @@ int main(void)
     InitWindow(1280, 720, "Graphexia");
     SetTargetFPS(60);
 
-    GraphMode mode = GraphMode::DrawVertices;
-    usize selectedNode = gpx::Graph::NoVertex;
+    GraphMode mode = GraphMode::EditVertices;
+    usize selectedVertex = gpx::Graph::NoVertex;
+    Vector2 movingVertexDifference = {};
     Camera2D camera = {{640, 360}, {}, 0, 1};
     while (!WindowShouldClose())
     {
@@ -59,13 +54,16 @@ int main(void)
             camera.offset.y += mDt.y;
         }
 
-        camera.zoom += GetMouseWheelMove() * 0.05;
+        camera.zoom += GetMouseWheelMove() * 0.04;
 
         if(IsKeyPressed(KEY_R)) {
             graph = gpx::Graph();
+            selectedVertex = gpx::Graph::NoVertex;
         } else if(IsKeyPressed(KEY_V)) {
-            mode = GraphMode::DrawVertices;
+            selectedVertex = gpx::Graph::NoVertex;
+            mode = GraphMode::EditVertices;
         } else if(IsKeyPressed(KEY_C)) {
+            selectedVertex = gpx::Graph::NoVertex;
             mode = GraphMode::DrawEdges;
         } else if(IsKeyPressed(KEY_A)) {
             usize verticesSize = graph.Vertices().size();
@@ -112,26 +110,40 @@ int main(void)
         
         Vector2 worldMousePosition = GetScreenToWorld2D(GetMousePosition(), camera);
         switch (mode) {
-            case GraphMode::DrawVertices: {
+            case GraphMode::EditVertices: {
                 if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                    graph.AddVertex(static_cast<i16>(worldMousePosition.x), static_cast<i16>(worldMousePosition.y));
+                    usize newSelected = graph.FindVertex(static_cast<i16>(worldMousePosition.x), static_cast<i16>(worldMousePosition.y));
+
+                    if(newSelected == gpx::Graph::NoVertex && selectedVertex == gpx::Graph::NoVertex) {
+                        graph.AddVertex(static_cast<i16>(worldMousePosition.x), static_cast<i16>(worldMousePosition.y));
+                    }
+
+                    selectedVertex = newSelected;
+
+                    if(selectedVertex != gpx::Graph::NoVertex) {
+                        const gpx::Vertex& vertex = graph.Vertices()[selectedVertex];
+
+                        movingVertexDifference = {vertex.x - worldMousePosition.x, vertex.y - worldMousePosition.y};
+                    }
+                } else if(IsMouseButtonDown(MOUSE_BUTTON_LEFT) && selectedVertex != gpx::Graph::NoVertex) {
+                    graph.MoveVertex(selectedVertex, worldMousePosition.x + movingVertexDifference.x, worldMousePosition.y + movingVertexDifference.y);
                 }
                 break;
             } 
             case GraphMode::DrawEdges: {
                 if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                    if(selectedNode == gpx::Graph::NoVertex) {
-                        selectedNode = graph.FindVertex(worldMousePosition.x, worldMousePosition.y); 
+                    if(selectedVertex == gpx::Graph::NoVertex) {
+                        selectedVertex = graph.FindVertex(worldMousePosition.x, worldMousePosition.y); 
                     } else {
                         usize nextSelectedNode = graph.FindVertex(worldMousePosition.x, worldMousePosition.y);
 
                         if(nextSelectedNode != gpx::Graph::NoVertex) {
-                            graph.AddEdge(selectedNode, nextSelectedNode); 
-                            selectedNode = nextSelectedNode;
+                            graph.AddEdge(selectedVertex, nextSelectedNode); 
+                            selectedVertex = nextSelectedNode;
                         }
                     }
-                } else if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && selectedNode != gpx::Graph::NoVertex) {
-                    selectedNode = gpx::Graph::NoVertex; 
+                } else if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && selectedVertex != gpx::Graph::NoVertex) {
+                    selectedVertex = gpx::Graph::NoVertex; 
                 }
                 break;
             }
@@ -141,15 +153,22 @@ int main(void)
             ClearBackground(BLACK);
 
             BeginMode2D(camera);
-                if(mode == GraphMode::DrawEdges && selectedNode != gpx::Graph::NoVertex) {
-                    const gpx::Vertex& v = graph.Vertices()[selectedNode];
+                if(mode == GraphMode::DrawEdges && selectedVertex != gpx::Graph::NoVertex) {
+                    const gpx::Vertex& v = graph.Vertices()[selectedVertex];
                     DrawLineEx({static_cast<f32>(v.x), static_cast<f32>(v.y)}, {static_cast<f32>(worldMousePosition.x), static_cast<f32>(worldMousePosition.y)}, 2.5, Color{255,255,255,255});
                 }
 
                 RenderGraph(graph);
+
+                if(mode == GraphMode::EditVertices && selectedVertex != gpx::Graph::NoVertex) {
+                    const gpx::Vertex& v = graph.Vertices()[selectedVertex];
+
+                    std::string vertexInfo = "Vertex [" + std::to_string(v.id) + "]: degree [" + std::to_string(graph.DegreeOf(v.id)) + "]";
+                    DrawText(vertexInfo.c_str(), v.x, v.y, 8, {200, 200, 200, 255});
+                }
             EndMode2D();
 
-            DrawText(mode == GraphMode::DrawVertices ? "Vertices" : "Edges", 0, 0, 14, {0, 255, 0, 255});
+            DrawText(mode == GraphMode::EditVertices ? "EditVertices" : "DrawEdges", 0, 0, 14, {0, 255, 0, 255});
 
             std::string verticesEdges = "Vertices: " + std::to_string(graph.Vertices().size()) + '\n' + "Edges: " + std::to_string(graph.Edges().size());
             DrawText(verticesEdges.c_str(), 0, 14, 14, {0, 255, 0, 255});

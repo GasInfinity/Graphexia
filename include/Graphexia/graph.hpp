@@ -56,6 +56,12 @@ namespace gpx {
         const std::vector<Edge>& Edges() const { return this->edges; }
 
         usize DegreeOf(usize vertex) const { return this->edgesForVertex[vertex].size(); }
+
+        void MoveVertex(usize id, i16 x, i16 y) {
+            Vertex& vertex = this->vertices[id];
+            vertex.x = x;
+            vertex.y = y;
+        }
         usize FindVertex(i16 x, i16 y) const;
 
         std::vector<usize> GetAdjacencyMatrix() const;
