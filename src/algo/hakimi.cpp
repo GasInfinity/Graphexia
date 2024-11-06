@@ -1,7 +1,6 @@
 #include <Graphexia/algo/hakimi.hpp>
 #include <algorithm>
 #include <cmath>
-#include <numbers>
 #include <numeric>
 #include <raylib.h>
 
@@ -11,7 +10,7 @@ namespace gpx {
         usize degree;
     };
 
-    bool IsValidSequence(std::span<usize> sequence) {
+    bool IsGraphicSequence(std::span<usize> sequence) {
         usize degreesSum = std::accumulate(sequence.begin(), sequence.end(), 0);
 
         // Invalid progression, the sum of all degrees is not even
@@ -48,17 +47,13 @@ namespace gpx {
         return true;
     }
 
-    void RenderSequence(Graph &graph, std::span<usize> sequence) {
+    Graph CreateFromGraphicSequence(std::span<usize> sequence) {
+        Graph sequenceGraph(sequence.size());
+
         std::vector<SequenceVertex> vertices(sequence.size());
 
-        f32 angleIncrement = 2 * std::numbers::pi / sequence.size();
-        f32 currentAngle = 0;
         for (usize i = 0; i < sequence.size(); ++i) {
-            i16 x = static_cast<i16>(50 * std::cos(currentAngle));
-            i16 y = static_cast<i16>(50 * std::sin(currentAngle));
-            vertices[i] = SequenceVertex{graph.AddVertex(x, y), sequence[i]}; 
-
-            currentAngle += angleIncrement;
+            vertices[i] = SequenceVertex{i, sequence[i]}; 
         }
 
         do {
@@ -73,9 +68,11 @@ namespace gpx {
                 usize index = i - 1;
                 SequenceVertex& seqVertex = vertices[index]; 
 
-                graph.AddEdge(highestDegree.id, seqVertex.id);
+                sequenceGraph.AddEdge(highestDegree.id, seqVertex.id);
                 --seqVertex.degree;
             } 
         } while(vertices.size() > 0);
+
+        return sequenceGraph;
     }
 } // namespace gpx

@@ -3,7 +3,8 @@
 
 #include <Graphexia/graph.hpp>
 
-namespace gpx { 
-    void RenderKComplete(Graph& graph, usize k);
+namespace gpx {
+    Graph CreateKComplete(usize k);
 } // namespace gpx
+
 #endif

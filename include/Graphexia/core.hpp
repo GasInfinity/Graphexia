@@ -14,4 +14,10 @@ typedef size_t usize;
 typedef float f32;
 
 
+namespace gpx {
+    struct Point {
+        i16 x, y;
+    };
+}
+
 #endif

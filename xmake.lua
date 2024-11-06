@@ -4,7 +4,8 @@ add_rules("mode.debug", "mode.release")
 add_requires("raylib")
 
 local lib = {
-    "src/graph.cpp",
+    "src/graphview.cpp",
+    "src/graphmatrix.cpp",
     "src/graphtypes.cpp",
     "src/algo/hakimi.cpp"
 }

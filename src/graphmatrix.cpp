@@ -1,32 +1,24 @@
-#include <Graphexia/graph.hpp>
+#include <Graphexia/graphmatrix.hpp>
 
 namespace gpx {
-    usize Graph::FindVertex(i16 x, i16 y) const {
-        for (usize i = 0; i < this->vertices.size(); ++i) {
-            if(this->vertices[i].collides(x, y)) {
-                return i;
-            }
-        }
+    std::vector<usize> AdjacencyMatrix(const Graph& graph) {
+        const std::vector<Edge>& graphEdges = graph.Edges();
 
-        return NoVertex;
-    }
-
-    std::vector<usize> Graph::GetAdjacencyMatrix() const {
-        usize verticesCount = this->vertices.size();
+        usize verticesCount = graph.Vertices();
         usize matrixLength = verticesCount * verticesCount;
         std::vector<usize> adjacency(matrixLength);
 
         for (usize i = 0; i < verticesCount; ++i) {
-            std::vector<usize> edgeIds = this->edgesForVertex[i];
+            std::vector<usize> edgeIds = graph.EdgesForVertex(i);
 
             usize currentRow = i * verticesCount;
             for (usize j = 0; j < edgeIds.size(); ++j) {
                 usize edgeId = edgeIds[j];
-                const Edge& currentEdge = this->edges[edgeId];
+                const Edge& currentEdge = graphEdges[edgeId];
                 
                 usize rowId = currentEdge.toId;
                 if(i != currentEdge.fromId) {
-                    if(this->IsDirected()) {
+                    if(graph.IsDirected()) {
                         continue;
                     }
 
@@ -40,21 +32,23 @@ namespace gpx {
         return adjacency;
     }
 
-    std::vector<IncidenceState> Graph::GetIncidenceMatrix() const {
-        usize verticesCount = this->vertices.size();
-        usize edgesCount = this->edges.size();
+    std::vector<IncidenceState> IncidenceMatrix(const Graph& graph) {
+        const std::vector<Edge>& graphEdges = graph.Edges();
+
+        usize verticesCount = graph.Vertices();
+        usize edgesCount = graphEdges.size();
         usize matrixLength = verticesCount * edgesCount;
         std::vector<IncidenceState> incidence(matrixLength);
 
         for (usize i = 0; i < verticesCount; ++i) {
-            std::vector<usize> edgeIds = this->edgesForVertex[i];
+            std::vector<usize> edgeIds = graph.EdgesForVertex(i);
 
             usize currentRow = i * edgesCount;
             for (usize j = 0; j < edgeIds.size(); ++j) {
                 usize edgeId = edgeIds[j];
-                const Edge& edge = this->edges[edgeId];
+                const Edge& edge = graphEdges[edgeId];
 
-                IncidenceState state = this->IsDirected() && edge.fromId == i ? IncidenceState::Leaves : static_cast<IncidenceState>(static_cast<i8>(IncidenceState::Incident) + (edge.fromId == edge.toId));
+                IncidenceState state = graph.IsDirected() && edge.fromId == i ? IncidenceState::Leaves : static_cast<IncidenceState>(static_cast<i8>(IncidenceState::Incident) + (edge.fromId == edge.toId));
                 incidence[currentRow + edgeId] = state;
             }
         }

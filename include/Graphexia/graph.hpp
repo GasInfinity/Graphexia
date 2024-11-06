@@ -2,46 +2,48 @@
 #define _GRAPHEXIA_GRAPH__HPP_
 
 #include <Graphexia/core.hpp>
+#include <cassert>
+#include <span>
 #include <limits>
 #include <vector>
 
 namespace gpx {
-    struct Vertex final {
-        usize id;
-        i16 x, y;
-        u32 size;
-
-        bool collides(i16 x, i16 y) const {
-            i16 dX = this->x - x;
-            i16 dY = this->y - y;
-
-            return static_cast<u32>(dX * dX) + static_cast<u32>(dY * dY) <= this->size * this->size;
-        }
-    };
-
     struct Edge final {
         usize fromId, toId;
         f32 weight; 
     };
 
-    enum class IncidenceState : i8 {
-        Leaves = -1,
-        None = 0,
-        Incident = 1
-    };
-
     struct Graph final {
         static constexpr usize NoVertex = std::numeric_limits<usize>::max();
+
+        constexpr explicit Graph()
+            : vertices(), edges(), edgesForVertex() {}
+
+        constexpr explicit Graph(usize vertices)
+            : vertices(vertices), edges(), edgesForVertex(std::vector<std::vector<usize>>(vertices)) {}
+
+        constexpr explicit Graph(usize vertices, std::span<Edge> edges)
+            : vertices(vertices), edges(std::vector<Edge>(edges.size())), edgesForVertex(std::vector<std::vector<usize>>(vertices)) {
+            for (usize i = 0; i < edges.size(); ++i) {
+                const Edge& edge = edges[i];
+
+                assert(edge.fromId < vertices && edge.toId < vertices);
+                this->edges[i] = edge;
+            }
+        }
 
         bool IsDirected() const { return this->directed; }
         void SetDirected(bool directed) { this->directed = directed; }
 
-        usize AddVertex(i16 x, i16 y, u32 size = 5) {
-            usize vertexId = this->vertices.size();
-
-            this->vertices.push_back(Vertex{vertexId, x, y, size});
+        usize AddVertex() {
             this->edgesForVertex.push_back(std::vector<usize>());
-            return vertexId;
+            return this->vertices++;
+        }
+        void AddVertices(usize n) {
+            assert(n > 0);
+
+            this->vertices += n;
+            this->edgesForVertex.resize(this->vertices);
         }
         void AddEdge(usize from, usize to, f32 weight = 0) {
             usize edgeId = this->edges.size();
@@ -52,22 +54,13 @@ namespace gpx {
             this->edges.push_back(Edge{from, to, weight});
         }
 
-        const std::vector<Vertex>& Vertices() const { return this->vertices; }
+        usize Vertices() const { return this->vertices; }
         const std::vector<Edge>& Edges() const { return this->edges; }
+        const std::vector<usize>& EdgesForVertex(usize id) const { return this->edgesForVertex[id]; }
 
         usize DegreeOf(usize vertex) const { return this->edgesForVertex[vertex].size(); }
-
-        void MoveVertex(usize id, i16 x, i16 y) {
-            Vertex& vertex = this->vertices[id];
-            vertex.x = x;
-            vertex.y = y;
-        }
-        usize FindVertex(i16 x, i16 y) const;
-
-        std::vector<usize> GetAdjacencyMatrix() const;
-        std::vector<IncidenceState> GetIncidenceMatrix() const;
     private:
-        std::vector<Vertex> vertices;
+        usize vertices;
         std::vector<Edge> edges;
         std::vector<std::vector<usize>> edgesForVertex;
 
