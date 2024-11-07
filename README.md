@@ -5,6 +5,11 @@ Manipulate graphs efficiently with all the eye candy.
 
 ## Building
 You will need `xmake` and a C++ compiler. Currently we depend on `sokol` and `nuklear`, as they are single header libraries you won't need to do anything. 
+The supported config options are:
+- `force_egl` to use `EGL` in linux instead of `GLX`
+- `force_gles` to use `GLES` in linux instead of `OpenGL`
+- ~~`gl` to use `OpenGL` instead of `D3D11` or `Metal`~~
+- ~~`wgpu` to use `WebGPU` instead of `WebGL` on emscripten~~
 
 It is recommended to build with a specific toolchain, the recommended one for linux is gcc:
 ```
