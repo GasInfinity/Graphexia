@@ -16,9 +16,9 @@ jobs:
           xmake-version: latest
 
       - name: Setup Emscripten
-        uses: lovasoa/setup-emscripten@v1
+        uses: mymindstorm/setup-emsdk@v14
         with:
-          emscripten-version: latest
+          version: latest
 
       - name: Configure and Download dependencies
         run: |
