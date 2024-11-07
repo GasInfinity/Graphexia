@@ -22,7 +22,7 @@ jobs:
 
       - name: Configure and Download dependencies
         run: |
-          xmake f --toolchain=emcc --platform=wasm --mode=debug
+          xmake f --toolchain=emcc -p wasm --mode=debug -y
       
       - name: Build Project
         run: |
