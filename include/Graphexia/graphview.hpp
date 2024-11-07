@@ -8,13 +8,13 @@
 namespace gpx {
     struct VertexView {
         Point position;
-        u32 size;
+        i32 size;
 
         bool collides(Point p) const {
             i16 dX = this->position.x - p.x;
             i16 dY = this->position.y - p.y;
 
-            return static_cast<u32>(dX * dX) + static_cast<u32>(dY * dY) <= this->size * this->size;
+            return static_cast<i32>(dX * dX) + static_cast<i32>(dY * dY) <= this->size * this->size;
         }
     };
 
@@ -23,7 +23,7 @@ namespace gpx {
             : graph(), views() {}
 
         template<GraphRenderer Renderer>
-        constexpr explicit GraphView(const Graph& graph, Renderer& renderer)
+        constexpr explicit GraphView(const Graph& graph, Renderer renderer)
             : graph(graph), views(std::vector<VertexView>(graph.Vertices())) {
             for (usize i = 0; i < graph.Vertices(); ++i) {
                 this->views[i] = {renderer.Render(i), 5};
@@ -32,7 +32,7 @@ namespace gpx {
 
         void SetDirected(bool directed) { this->graph.SetDirected(directed); }
 
-        usize AddVertex(Point position, u32 size = 5) {
+        usize AddVertex(Point position, i32 size = 6) {
             usize vertexId = this->graph.AddVertex();
 
             this->views.push_back(VertexView{position, size});

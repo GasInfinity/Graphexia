@@ -16,11 +16,16 @@
           stdenv = pkgs.stdenv;
         } {
           buildInputs = with pkgs; [
-            raylib
+            xorg.libX11.dev
+            xorg.libXi.dev
+            xorg.libXcursor.dev
+            libGL
+            eglexternalplatform
           ];
 
           nativeBuildInputs = with pkgs; [
             xmake
+            emscripten
           ] ++ (if system == "aarch64-darwin" then [ ] else [ gdb ]);
         };
       });

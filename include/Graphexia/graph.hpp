@@ -17,13 +17,13 @@ namespace gpx {
         static constexpr usize NoVertex = std::numeric_limits<usize>::max();
 
         constexpr explicit Graph()
-            : vertices(), edges(), edgesForVertex() {}
+            : vertices(), edges(), edgesForVertex(), directed() {}
 
         constexpr explicit Graph(usize vertices)
-            : vertices(vertices), edges(), edgesForVertex(std::vector<std::vector<usize>>(vertices)) {}
+            : vertices(vertices), edges(), edgesForVertex(std::vector<std::vector<usize>>(vertices)), directed() {}
 
         constexpr explicit Graph(usize vertices, std::span<Edge> edges)
-            : vertices(vertices), edges(std::vector<Edge>(edges.size())), edgesForVertex(std::vector<std::vector<usize>>(vertices)) {
+            : vertices(vertices), edges(std::vector<Edge>(edges.size())), edgesForVertex(std::vector<std::vector<usize>>(vertices)), directed() {
             for (usize i = 0; i < edges.size(); ++i) {
                 const Edge& edge = edges[i];
 
@@ -57,14 +57,11 @@ namespace gpx {
         usize Vertices() const { return this->vertices; }
         const std::vector<Edge>& Edges() const { return this->edges; }
         const std::vector<usize>& EdgesForVertex(usize id) const { return this->edgesForVertex[id]; }
-
-        usize DegreeOf(usize vertex) const { return this->edgesForVertex[vertex].size(); }
     private:
         usize vertices;
         std::vector<Edge> edges;
         std::vector<std::vector<usize>> edgesForVertex;
-
-        bool directed = false;
+        bool directed;
     };
 } // namespace gpx
 

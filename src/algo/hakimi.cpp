@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <cmath>
 #include <numeric>
-#include <raylib.h>
 
 namespace gpx {
     struct SequenceVertex {
