@@ -59,9 +59,8 @@ void Graphexia::Update(nk_context* ctx) {
 
             nk_tree_pop(ctx);
         }
-
-        nk_end(ctx);
     }
+    nk_end(ctx);
 
     if(nk_begin(ctx, "Graph Info", nk_rect(10, 10, 120, 150), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_MINIMIZABLE)) {
         nk_layout_row_static(ctx, 16, 80, 1);
@@ -71,9 +70,8 @@ void Graphexia::Update(nk_context* ctx) {
         if(nk_button_label(ctx, graph.IsDirected() ? "Directed" : "Undirected")) {
             this->view.SetDirected(!graph.IsDirected());
         }
-
-        nk_end(ctx);
     }
+    nk_end(ctx);
 
     if(nk_begin(ctx, "Selection Info", nk_rect(0, 0, 130, 150), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_MINIMIZABLE)) {
         switch (this->mode) {
@@ -91,8 +89,8 @@ void Graphexia::Update(nk_context* ctx) {
                 break;
             }
         }
-        nk_end(ctx);
     }
+    nk_end(ctx);
 }
 
 void Graphexia::Render() {
