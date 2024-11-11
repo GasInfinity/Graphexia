@@ -14,9 +14,4 @@ typedef size_t usize;
 
 typedef float f32;
 
-
-namespace gpx {
-    struct i16x2 { i16 x, y; };
-}
-
 #endif

@@ -3,19 +3,19 @@ add_rules("mode.debug", "mode.release")
 
 local lib = {
     "src/Graph.cpp",
-    "src/GraphView.cpp",
     "src/GraphMatrix.cpp",
     "src/GraphTypes.cpp",
     "src/Algo/Hakimi.cpp"
 }
 
 local app = {
-    "app/sokol.c",
+    "app/vendor.c",
     "app/main.cpp",
+    "app/GraphView.cpp",
     "app/Graphexia.cpp",
     "app/GraphexiaRenderer.cpp",
 
-    "assets/shaders/graphvtx.glsl"
+    "assets/shaders/Graph.glsl"
 }
 
 if is_plat("linux") then
@@ -101,10 +101,17 @@ target("graphexia")
     add_files(lib)
     add_files(app)
 
-    add_defines("NK_INCLUDE_FIXED_TYPES", "NK_INCLUDE_STANDARD_IO", "NK_INCLUDE_DEFAULT_ALLOCATOR", "NK_INCLUDE_VERTEX_BUFFER_OUTPUT", "NK_INCLUDE_FONT_BAKING", "NK_INCLUDE_DEFAULT_FONT", "NK_INCLUDE_STANDARD_VARARGS")
+    add_defines("NK_INCLUDE_FIXED_TYPES",
+                "NK_INCLUDE_STANDARD_IO",
+                "NK_INCLUDE_DEFAULT_ALLOCATOR",
+                "NK_INCLUDE_VERTEX_BUFFER_OUTPUT",
+                "NK_INCLUDE_FONT_BAKING",
+                "NK_INCLUDE_DEFAULT_FONT",
+                "NK_INCLUDE_STANDARD_VARARGS")
 
     if is_plat("wasm") then
         add_ldflags("--shell-file $(projectdir)/assets/web/shell.html")
+        add_ldflags("-sINITIAL_MEMORY=67108864") -- 64 MB. TODO: Make it a config option...
 
         if has_config("wgpu") then
             add_defines("SOKOL_WGPU")

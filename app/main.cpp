@@ -7,7 +7,6 @@
 #include <sokol/sokol_gfx.h>
 #include <sokol/sokol_glue.h>
 #include <sokol/sokol_log.h>
-#include "sokol/sokol_gp.h"
 
 #include <nuklear/nuklear.h>
 #include <sokol/util/sokol_nuklear.h>
@@ -22,19 +21,6 @@ void init(void* userdata) {
     
     if(!sg_isvalid()) {
         std::cout << "Error initializing sokol_gfx context" << std::endl; 
-        std::exit(-1);
-    }
-
-    sgp_desc sgp{};
-    sgp.color_format = SG_PIXELFORMAT_RGBA8;
-    sgp.depth_format = SG_PIXELFORMAT_DEPTH_STENCIL;
-    sgp.sample_count = 1;
-    sgp.max_vertices = 65536;
-    sgp.max_commands = 8192;
-    sgp_setup(&sgp);
-
-    if(!sgp_is_valid()) {
-        std::cout << "Error initializing sokol_gp context: " << sgp_get_error_message(sgp_get_last_error()) << std::endl; 
         std::exit(-1);
     }
 
@@ -58,13 +44,12 @@ void frame(void* userdata) {
     graphexia->Update(nuklearContext);
 
     sg_pass defaultPass{};
+    defaultPass.action.colors[0].load_action = SG_LOADACTION_CLEAR;
+    defaultPass.action.colors[0].clear_value = {0.1, 0.1, 0.1, 1};
     defaultPass.swapchain = sglue_swapchain();
 
     sg_begin_pass(&defaultPass);
-    sgp_begin(sapp_width(), sapp_height());
     graphexia->Render();
-    sgp_flush();
-    sgp_end();
 
     snk_render(sapp_width(), sapp_height());
     sg_end_pass();
@@ -76,7 +61,6 @@ void cleanup(void* userdata) {
     delete graphexia;
 
     snk_shutdown();
-    sgp_shutdown();
     sg_shutdown();
 }
 

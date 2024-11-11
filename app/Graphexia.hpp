@@ -1,7 +1,7 @@
 #ifndef _GRAPHEXIA_APP_GRAPHEXIA__HPP_
 #define _GRAPHEXIA_APP_GRAPHEXIA__HPP_
 
-#include <Graphexia/GraphView.hpp>
+#include "GraphView.hpp"
 
 #include "Core.hpp"
 #include "GraphexiaRenderer.hpp"
@@ -19,21 +19,16 @@ public:
     void Render();
 
     void Event(const sapp_event* event);
-
-    f32x2 ScreenToWorld(f32x2 position);
 private:
     void ChangeMode(GraphexiaMode mode);
 
-    gpx::GraphView view;
+    GraphView view;
     GraphexiaRenderer renderer;
 
     GraphexiaMode mode;
     SelectionType selectionType;
     usize selectedId;
     f32x2 selectedVertexMouseOffset;
-
-    f32x2 cameraPosition;
-    f32 cameraZoom;
 
     bool movingCamera;
     bool currentlyDraggingVertex;

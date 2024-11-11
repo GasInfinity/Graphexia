@@ -18,8 +18,19 @@ enum class SelectionType : u8 {
 inline SelectionType operator|(SelectionType a, SelectionType b) { return static_cast<SelectionType>(static_cast<u8>(a) | static_cast<u8>(b)); }
 inline SelectionType operator&(SelectionType a, SelectionType b) { return static_cast<SelectionType>(static_cast<u8>(a) & static_cast<u8>(b)); }
 
+
+struct i16x2 { i16 x, y; };
+
+struct u32x2 {
+    u32 x, y;
+};
+
 struct f32x2 {
     f32 x, y; 
+};
+
+struct u8x4 {
+    u8 x, y, z, w;
 };
 
 enum class GraphexiaMode : u8 {

@@ -2,10 +2,8 @@
 #define _GRAPHEXIA_GRAPH__HPP_
 
 #include <Graphexia/Core.hpp>
-#include <algorithm>
 #include <cassert>
 #include <span>
-#include <limits>
 #include <vector>
 
 namespace gpx {
@@ -15,8 +13,6 @@ namespace gpx {
     };
 
     struct Graph final {
-        static constexpr usize NoId = std::numeric_limits<usize>::max();
-
         constexpr explicit Graph()
             : vertices(), edges(), edgesForVertex(), directed() {}
 
