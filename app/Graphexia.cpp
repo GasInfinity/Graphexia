@@ -53,8 +53,8 @@ void Graphexia::Update(nk_context* ctx) {
 
         nk_layout_row_static(ctx, 14, 80, 1);
         if(nk_tree_push(ctx, NK_TREE_TAB, "K Complete Graphs", NK_MINIMIZED)) {
-            nk_property_int(ctx, "K", 1, &this->savedSelectedKComplete, 100, 1, 1);
-            nk_property_int(ctx, "Radius", 1, &this->savedSelectedRadius, 1000, 1, 1);
+            nk_property_int(ctx, "K", 1, &this->savedSelectedKComplete, 400, 1, 1);
+            nk_property_int(ctx, "Radius", 1, &this->savedSelectedRadius, 2000, 1, 1);
 
             if(nk_button_label(ctx, "Render K Complete Graph")) {
                 this->view = GraphView(gpx::CreateKComplete(this->savedSelectedKComplete), CircularGraphViewRenderer({}, this->savedSelectedRadius, this->savedSelectedKComplete)); 

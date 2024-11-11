@@ -89,6 +89,7 @@ void GraphexiaRenderer::ReconstructView(const GraphView& view) {
     this->graphDirty = true;
     if(!graph.Vertices()) {
         this->gVtxBatched = 0;
+        this->gEdgesBatched = 0;
         return;
     }
 
