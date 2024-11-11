@@ -32,13 +32,13 @@ jobs:
       - name: Build Project
         run: |
           xmake
-          mv build/wasm/wasm32/debug/graphexia.html build/wasm/wasm32/debug/index.html
+          mv build/wasm/wasm32/release/graphexia.html build/wasm/wasm32/release/index.html
 
       - name: Upload static files as artifact
         id: deployment
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build/wasm/wasm32/debug/
+          path: build/wasm/wasm32/release/
   deploy:
     environment:
       name: github-pages
