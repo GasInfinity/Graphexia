@@ -152,7 +152,7 @@ void Graphexia::Event(const sapp_event* event) {
 
                                 if(this->selectedId == newSelection && newSelection == GraphView::NoId) {
                                     this->view.AddVertex(worldPosition);
-                                    this->renderer.AddVertex(this->view.Views().back());
+                                    this->renderer.AddVertex(this->view.Vertices().back());
                                 }
                             }
 
@@ -164,7 +164,7 @@ void Graphexia::Event(const sapp_event* event) {
                             }
 
                             if(this->selectedId != GraphView::NoId) {
-                                const Vertex& vertex = this->view.Views()[this->selectedId];
+                                const Vertex& vertex = this->view.Vertices()[this->selectedId];
                                 this->selectedVertexMouseOffset = { vertex.position.x - worldPosition.x, vertex.position.y - worldPosition.y };
                                 this->currentlyDraggingVertex = true;
 
@@ -213,7 +213,7 @@ void Graphexia::Event(const sapp_event* event) {
                     switch (this->mode) {
                         case GraphexiaMode::EditVertices: {
                             if((this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected && this->selectedId != GraphView::NoId) {
-                                const Vertex& vView = this->view.Views()[this->selectedId];
+                                const Vertex& vView = this->view.Vertices()[this->selectedId];
                                 
                                 if(vView.Collides(worldPosition)) {
                                     if((this->selectionType & SelectionType::DeletionRequest) != SelectionType::DeletionRequest) {

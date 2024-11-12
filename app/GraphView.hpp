@@ -53,12 +53,12 @@ struct GraphView final {
     }
 
     usize FindVertex(f32x2 position, usize startingVertex = NoId) const;
-    usize FindEdge(f32x2 position) const;
+    usize FindEdge(f32x2 position, f32 minimumDistance = 1) const;
 
     void MoveVertex(usize id, f32x2 position) { this->vertices[id].position = position; }
     Vertex& View(usize id) { return this->vertices[id]; }
 
-    const std::vector<Vertex>& Views() const { return this->vertices; }
+    const std::vector<Vertex>& Vertices() const { return this->vertices; }
     const gpx::Graph& GetGraph() const { return this->graph; }
 private:
     gpx::Graph graph;

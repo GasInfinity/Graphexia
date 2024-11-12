@@ -93,7 +93,7 @@ void GraphexiaRenderer::ReconstructView(const GraphView& view) {
         return;
     }
 
-    const std::vector<Vertex>& vertexViews = view.Views();
+    const std::vector<Vertex>& vertexViews = view.Vertices();
     for (usize i = 0; i < vertexViews.size(); ++i) { 
         const Vertex& vertex = vertexViews[i];
 
