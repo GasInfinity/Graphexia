@@ -20,6 +20,7 @@ public:
 
     void Event(const sapp_event* event);
 private:
+    void ClearLastSelection();
     void ChangeMode(GraphexiaMode mode);
 
     GraphView view;
@@ -36,6 +37,11 @@ private:
 
     i32 savedSelectedRadius;
     i32 savedSelectedKComplete;
+
+    i32 savedHavelHakimiSequenceLength;
+    char savedHavelHakimiSequence[256];
+    bool renderHakimiRandom;
+    std::vector<usize> havelHakimiSequence;
 };
 
 #endif

@@ -38,6 +38,7 @@ public:
 
     void UpdateVertexPosition(usize id, f32x2 position);
     void UpdateVertexColor(usize id, u32 color);
+    void UpdateEdgeColor(usize id, u32 color);
     void DeleteVertex(usize id);
 
     void SetCameraZoom(f32 zoom);

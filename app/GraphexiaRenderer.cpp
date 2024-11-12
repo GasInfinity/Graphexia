@@ -142,6 +142,11 @@ void GraphexiaRenderer::UpdateVertexColor(usize id, u32 color) {
     this->graphDirty = true;
 }
 
+void GraphexiaRenderer::UpdateEdgeColor(usize id, u32 color) {
+    this->gEdgeData[id].color = color;
+    this->graphDirty = true;
+}
+
 void GraphexiaRenderer::DeleteVertex(usize id) {
     this->graphDirty = true;
     if(id != this->gVtxBatched - 1) {

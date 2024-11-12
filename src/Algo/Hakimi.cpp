@@ -13,7 +13,7 @@ namespace gpx {
         usize degreesSum = std::accumulate(sequence.begin(), sequence.end(), 0);
 
         // Invalid progression, the sum of all degrees is not even
-        if(degreesSum & 1) {
+        if(degreesSum == 0 || (degreesSum & 1)) {
             return false;
         }
 

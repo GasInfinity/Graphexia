@@ -2,19 +2,25 @@
 #include "Core.hpp"
 #include "GraphView.hpp"
 #include "GraphViewRenderer.hpp"
+#include "Graphexia/Algo/Hakimi.hpp"
 #include "Graphexia/Graph.hpp"
 #include <Graphexia/GraphTypes.hpp>
 
 #include <algorithm>
+#include <random>
 #include <sokol/sokol_gfx.h>
 
 Graphexia::Graphexia()
-    : view(gpx::CreateKComplete(4), CircularGraphViewRenderer({0,0}, 60, 4)), renderer(), mode(GraphexiaMode::EditVertices), selectedId(GraphView::NoId) {
+    : view(gpx::CreateKComplete(4), CircularGraphViewRenderer({0,0}, 60, 4)), renderer(), mode(GraphexiaMode::EditVertices), selectedId(GraphView::NoId), savedHavelHakimiSequenceLength(), havelHakimiSequence() {
 }
 
 void Graphexia::Init() {
     this->renderer.Init({static_cast<u32>(sapp_width()), static_cast<u32>(sapp_height())});
     this->renderer.ReconstructView(this->view);
+}
+
+nk_bool FilterSequence(const nk_text_edit* edit, const nk_rune unicode) {
+    return (unicode >= '0' && unicode <= '9') || unicode == ' ';
 }
 
 void Graphexia::Update(nk_context* ctx) {
@@ -35,8 +41,10 @@ void Graphexia::Update(nk_context* ctx) {
         nk_layout_row_dynamic(ctx, 14, 1);
         nk_label_wrap(ctx, "Built with sokol + nuklear");
 
-        nk_labelf(ctx, NK_TEXT_LEFT, "Frametime: %f | FPS: %f", sapp_frame_duration(), 1 / sapp_frame_duration());
-        nk_labelf(ctx, NK_TEXT_LEFT, "Camera at %f, %f", this->renderer.GetCameraPosition().x, this->renderer.GetCameraPosition().y);
+        nk_labelf(ctx, NK_TEXT_LEFT, "Frametime: %.2f | FPS: %.2f", sapp_frame_duration(), 1 / sapp_frame_duration());
+        nk_labelf(ctx, NK_TEXT_LEFT, "Camera at %.2f, %.2f", this->renderer.GetCameraPosition().x, this->renderer.GetCameraPosition().y);
+        nk_labelf(ctx, NK_TEXT_LEFT, "Zoom: %.2f", this->renderer.GetCameraZoom());
+
         nk_layout_row_dynamic(ctx, 30, 2);
         if(nk_option_label(ctx, "Edit Vertices", this->mode == GraphexiaMode::EditVertices)) {
             this->ChangeMode(GraphexiaMode::EditVertices);
@@ -54,7 +62,7 @@ void Graphexia::Update(nk_context* ctx) {
             this->renderer.ReconstructView(this->view);
         }
 
-        nk_layout_row_static(ctx, 14, 80, 1);
+        nk_layout_row_dynamic(ctx, 14, 1);
         if(nk_tree_push(ctx, NK_TREE_TAB, "K Complete Graphs", NK_MINIMIZED)) {
             nk_property_int(ctx, "K", 1, &this->savedSelectedKComplete, 400, 1, 1);
             nk_property_int(ctx, "Radius", 1, &this->savedSelectedRadius, 2000, 1, 1);
@@ -62,9 +70,60 @@ void Graphexia::Update(nk_context* ctx) {
             if(nk_button_label(ctx, "Render K Complete Graph")) {
                 this->view = GraphView(gpx::CreateKComplete(this->savedSelectedKComplete), CircularGraphViewRenderer({}, this->savedSelectedRadius, this->savedSelectedKComplete)); 
                 this->renderer.ReconstructView(this->view);
+                this->selectionType = SelectionType::None;
                 this->selectedId = GraphView::NoId;
             }
 
+            nk_tree_pop(ctx);
+        }
+
+        nk_layout_row_dynamic(ctx, 14, 1);
+        if(nk_tree_push(ctx, NK_TREE_TAB, "Havel Hakimi", NK_MINIMIZED)) {
+            nk_edit_string(ctx, NK_EDIT_FIELD, this->savedHavelHakimiSequence, &this->savedHavelHakimiSequenceLength, 256, FilterSequence);
+            
+            this->havelHakimiSequence.clear();
+            usize i = 0;
+            while (i < static_cast<u32>(this->savedHavelHakimiSequenceLength)) {
+                if(this->savedHavelHakimiSequence[i] == ' ') {
+                    ++i;
+                    continue;
+                }
+
+                const char* start = this->savedHavelHakimiSequence + i;
+                char* end;
+                this->havelHakimiSequence.push_back(std::strtoull(start, &end, 10));
+                i += end - start;
+            }
+
+
+            if(gpx::IsGraphicSequence(this->havelHakimiSequence)) {
+                nk_label(ctx, "Is a graphic sequence", NK_TEXT_LEFT);
+                nk_label(ctx, "Render mode", NK_TEXT_LEFT);
+
+                nk_layout_row_dynamic(ctx, 30, 2);
+                if(nk_option_label(ctx, "Circular", this->renderHakimiRandom == false)) {
+                    this->renderHakimiRandom = false;
+                }
+
+                if(nk_option_label(ctx, "Random", this->renderHakimiRandom == true)) {
+                    this->renderHakimiRandom = true;
+                }
+
+                nk_layout_row_dynamic(ctx, 14, 1);
+                if(nk_button_label(ctx, "Render")) {
+                    if(this->renderHakimiRandom) {
+                        this->view = GraphView(gpx::CreateFromGraphicSequence(this->havelHakimiSequence), RandomGraphViewRenderer({}, this->havelHakimiSequence.size() * 10, std::default_random_engine{sapp_frame_count()})); 
+                    } else {
+                        this->view = GraphView(gpx::CreateFromGraphicSequence(this->havelHakimiSequence), CircularGraphViewRenderer({}, this->havelHakimiSequence.size() * 10, this->havelHakimiSequence.size())); 
+
+                    }
+                    this->renderer.ReconstructView(this->view);
+                    this->selectionType = SelectionType::None;
+                    this->selectedId = GraphView::NoId;
+                }
+            } else {
+                nk_label(ctx, "Is not a graphic sequence", NK_TEXT_LEFT);
+            }
             nk_tree_pop(ctx);
         }
     }
@@ -104,7 +163,7 @@ void Graphexia::Update(nk_context* ctx) {
                         const gpx::Edge& edge = graph.Edges()[this->selectedId];
                         nk_label(ctx, "Edge", NK_TEXT_LEFT);
                         nk_labelf(ctx, NK_TEXT_LEFT, "%zu -> %zu", edge.fromId, edge.toId);
-                        nk_labelf(ctx, NK_TEXT_LEFT, "Weight: %f", edge.weight);
+                        nk_labelf(ctx, NK_TEXT_LEFT, "Weight: %.2f", edge.weight);
                     } else if((this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected) {
                         nk_label(ctx, "Creating edge", NK_TEXT_LEFT);
                         nk_labelf(ctx, NK_TEXT_LEFT, "From ID: %zu", this->selectedId);
@@ -126,7 +185,7 @@ void Graphexia::Event(const sapp_event* event) {
         case SAPP_EVENTTYPE_MOUSE_SCROLL: {
             f32x2 lastWorldSpaceMouse = this->renderer.ScreenToWorld({event->mouse_x, event->mouse_y});
             bool zoomingIn = event->scroll_y > 0;
-            f32 newZoom = std::clamp(this->renderer.GetCameraZoom() * (zoomingIn ? 1.1f : 1/1.1f), .8f, 15.f);
+            f32 newZoom = std::clamp(this->renderer.GetCameraZoom() * (zoomingIn ? 1.1f : 1/1.1f), .4f, 15.f);
 
             this->renderer.SetCameraZoom(newZoom);
             f32x2 newWorldSpaceMouse = this->renderer.ScreenToWorld({event->mouse_x, event->mouse_y});
@@ -145,8 +204,6 @@ void Graphexia::Event(const sapp_event* event) {
 
                     switch (this->mode) {
                         case GraphexiaMode::EditVertices: {
-                            usize lastSelection = this->selectedId;
-
                             if(newSelection == GraphView::NoId) {
                                 newSelection = this->view.FindVertex(worldPosition);
 
@@ -155,25 +212,22 @@ void Graphexia::Event(const sapp_event* event) {
                                     this->renderer.AddVertex(this->view.Vertices().back());
                                 }
                             }
-
+                            
+                            this->ClearLastSelection();
                             this->selectedId = newSelection;
                             this->selectionType = SelectionType::VertexSelected; 
-
-                            if(lastSelection != GraphView::NoId) {
-                                this->renderer.UpdateVertexColor(lastSelection, 0xFFFFFFFF);
-                            }
 
                             if(this->selectedId != GraphView::NoId) {
                                 const Vertex& vertex = this->view.Vertices()[this->selectedId];
                                 this->selectedVertexMouseOffset = { vertex.position.x - worldPosition.x, vertex.position.y - worldPosition.y };
                                 this->currentlyDraggingVertex = true;
-
                                 this->renderer.UpdateVertexColor(this->selectedId, 0x00FF00FF);
                             }
 
                             break;
                         }
                         case GraphexiaMode::EditEdges: {
+
                             if(newSelection == GraphView::NoId) {
                                 newSelection = this->view.FindVertex(worldPosition);
 
@@ -184,12 +238,18 @@ void Graphexia::Event(const sapp_event* event) {
 
                                     newSelection = this->view.FindEdge(worldPosition);
 
+                                    this->ClearLastSelection();
                                     this->selectedId = newSelection;
                                     this->selectionType = SelectionType::EdgeSelected;
+
+                                    if(newSelection != GraphView::NoId) {
+                                        this->renderer.UpdateEdgeColor(newSelection, 0x00FF00FF);
+                                    }
                                     break;
                                 }
                             }
 
+                            this->ClearLastSelection();
                             if(this->selectedId == GraphView::NoId) {
                                 this->selectedId = newSelection;
                                 this->selectionType = SelectionType::VertexDrawingEdge;
@@ -197,7 +257,6 @@ void Graphexia::Event(const sapp_event* event) {
                                 break;
                             }
 
-                            this->renderer.UpdateVertexColor(this->selectedId, 0xFFFFFFFF);
                             this->view.AddEdge(this->selectedId, newSelection); 
                             this->renderer.AddEdge(this->view.GetGraph().Edges().back());
                             this->selectionType = SelectionType::None;
@@ -232,9 +291,8 @@ void Graphexia::Event(const sapp_event* event) {
                             break;
                         }
                         case GraphexiaMode::EditEdges: {
-                            if(this->selectedId != GraphView::NoId) {
-                                this->renderer.UpdateVertexColor(this->selectedId, 0xFFFFFFFF);
-                            }
+                            this->ClearLastSelection();
+                            this->selectionType = SelectionType::None;
                             this->selectedId = GraphView::NoId;
                             break;
                         }
@@ -279,7 +337,6 @@ void Graphexia::Event(const sapp_event* event) {
                     if(this->currentlyDraggingVertex) {
                         f32x2 newPosition = {(this->currentMouseWorldPosition.x + this->selectedVertexMouseOffset.x), (this->currentMouseWorldPosition.y + this->selectedVertexMouseOffset.y)};
                         this->view.MoveVertex(this->selectedId, newPosition); 
-
                         this->renderer.UpdateVertexPosition(this->selectedId, newPosition);
                     }
                     break;
@@ -292,10 +349,23 @@ void Graphexia::Event(const sapp_event* event) {
     }
 }
 
+
+void Graphexia::ClearLastSelection() {
+    if(this->selectedId != GraphView::NoId) {
+        if((this->selectionType & SelectionType::EdgeSelected) == SelectionType::EdgeSelected) {
+            this->renderer.UpdateEdgeColor(this->selectedId, 0xFFFFFFFF);
+        } else if((this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected) {
+            this->renderer.UpdateVertexColor(this->selectedId, 0xFFFFFFFF);
+        }
+    }
+}
+
 void Graphexia::ChangeMode(const GraphexiaMode mode) {
     if(this->mode == mode)
         return;
 
+    this->ClearLastSelection();
     this->mode = mode;
+    this->selectionType = SelectionType::None;
     this->selectedId = GraphView::NoId;
 }
