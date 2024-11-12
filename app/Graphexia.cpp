@@ -1,14 +1,11 @@
 #include "Graphexia.hpp"
-#include "Core.hpp"
-#include "GraphView.hpp"
-#include "GraphViewRenderer.hpp"
 #include "Graphexia/Algo/Hakimi.hpp"
-#include "Graphexia/Graph.hpp"
 #include <Graphexia/GraphTypes.hpp>
+
+#include <sokol/sokol_gfx.h>
 
 #include <algorithm>
 #include <random>
-#include <sokol/sokol_gfx.h>
 
 Graphexia::Graphexia()
     : view(gpx::CreateKComplete(4), CircularGraphViewRenderer({0,0}, 60, 4)), renderer(), mode(GraphexiaMode::EditVertices), selectedId(GraphView::NoId), savedHavelHakimiSequenceLength(), havelHakimiSequence() {

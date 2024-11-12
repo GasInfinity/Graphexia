@@ -1,8 +1,6 @@
 #include "Graphexia.hpp"
 #include "logo.hpp"
 
-#include <cstdlib>
-#include <iostream>
 #include <sokol/sokol_app.h>
 #include <sokol/sokol_gfx.h>
 #include <sokol/sokol_glue.h>
@@ -10,6 +8,9 @@
 
 #include <nuklear/nuklear.h>
 #include <sokol/util/sokol_nuklear.h>
+
+#include <cstdlib>
+#include <iostream>
 
 void init(void* userdata) {
     Graphexia* graphexia = reinterpret_cast<Graphexia*>(userdata);
