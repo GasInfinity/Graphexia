@@ -22,18 +22,13 @@ usize GraphView::FindEdge(f32x2 position) const {
         const Vertex& starting = this->vertices[edge.fromId];
         const Vertex& ending = this->vertices[edge.toId];
 
-        i32 directorX = ending.position.x - starting.position.x;
-        i32 directorY = ending.position.y - starting.position.y;
-        
-        f32 t = static_cast<f32>(position.x - starting.position.x) / (directorX + directorY);
+        f32 directorX = ending.position.x - starting.position.x;
+        f32 directorY = ending.position.y - starting.position.y;
 
-        f32 crossX = starting.position.x + directorX * t;
-        f32 crossY = starting.position.y + directorY * t;
+        f32 c = directorY * starting.position.x - directorX * starting.position.y;
 
-        i32 dX = crossX - position.x;
-        i32 dY = crossY - position.y;
-
-        i32 distanceSqr = dX * dX + dY * dY;
+        f32 numerator = directorX * position.y - (directorY * position.x) + c;
+        f32 distanceSqr = (numerator * numerator) / (directorX * directorX + directorY * directorY);
 
         if(distanceSqr <= MinimumDistance * MinimumDistance) {
             return i;

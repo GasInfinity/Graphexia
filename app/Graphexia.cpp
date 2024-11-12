@@ -1,5 +1,8 @@
 #include "Graphexia.hpp"
+#include "Core.hpp"
+#include "GraphView.hpp"
 #include "GraphViewRenderer.hpp"
+#include "Graphexia/Graph.hpp"
 #include <Graphexia/GraphTypes.hpp>
 
 #include <algorithm>
@@ -79,11 +82,10 @@ void Graphexia::Update(nk_context* ctx) {
     nk_end(ctx);
 
     if(nk_begin(ctx, "Selection Info", nk_rect(0, 0, 130, 150), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_MINIMIZABLE | NK_WINDOW_SCALABLE)) {
+        nk_layout_row_dynamic(ctx, 18, 1); 
         switch (this->mode) {
             case GraphexiaMode::EditVertices: {
                 if(this->selectedId != GraphView::NoId) {
-                    nk_layout_row_dynamic(ctx, 18, 1); 
-                    
                     nk_label(ctx, "Vertex", NK_TEXT_LEFT);
                     nk_labelf(ctx, NK_TEXT_LEFT, "ID: %zu", this->selectedId);
                     nk_labelf(ctx, NK_TEXT_LEFT, "Degree: %zu", graph.EdgesForVertex(this->selectedId).size());
@@ -97,6 +99,17 @@ void Graphexia::Update(nk_context* ctx) {
                 break;
             }
             case GraphexiaMode::EditEdges: { 
+                if(this->selectedId != GraphView::NoId) {
+                    if((this->selectionType & SelectionType::EdgeSelected) == SelectionType::EdgeSelected) {
+                        const gpx::Edge& edge = graph.Edges()[this->selectedId];
+                        nk_label(ctx, "Edge", NK_TEXT_LEFT);
+                        nk_labelf(ctx, NK_TEXT_LEFT, "%zu -> %zu", edge.fromId, edge.toId);
+                        nk_labelf(ctx, NK_TEXT_LEFT, "Weight: %f", edge.weight);
+                    } else if((this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected) {
+                        nk_label(ctx, "Creating edge", NK_TEXT_LEFT);
+                        nk_labelf(ctx, NK_TEXT_LEFT, "From ID: %zu", this->selectedId);
+                    }
+                }
                 break;
             }
         }
@@ -165,6 +178,14 @@ void Graphexia::Event(const sapp_event* event) {
                                 newSelection = this->view.FindVertex(worldPosition);
 
                                 if(newSelection == GraphView::NoId) {
+                                    if(this->selectedId != GraphView::NoId && (this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected) {
+                                        break;
+                                    }
+
+                                    newSelection = this->view.FindEdge(worldPosition);
+
+                                    this->selectedId = newSelection;
+                                    this->selectionType = SelectionType::EdgeSelected;
                                     break;
                                 }
                             }
