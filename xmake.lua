@@ -90,6 +90,7 @@ target("graphexia")
     add_rules("sokol-shdc")
 
     set_warnings("all", "extra")
+    set_policy("build.warning", true)
     --set_policy("build.sanitizer.address", true)
     --set_policy("build.sanitizer.leak", true)
     --set_policy("build.sanitizer.memory", true)

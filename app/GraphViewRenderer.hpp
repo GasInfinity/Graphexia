@@ -37,7 +37,7 @@ struct RandomGraphViewRenderer {
         : offset(offset), radius(radius), generator(generator) {}
 
     f32x2 Render(usize) {
-        f32 halfMax = Generator::max() / 2.f;
+        f32 halfMax = static_cast<f32>(Generator::max()) / 2.f;
         f32 rX = ((this->generator() - halfMax) / halfMax) * radius;
         f32 rY = ((this->generator() - halfMax) / halfMax) * radius;
         return { (this->offset.x + rX), (this->offset.y + rY) };

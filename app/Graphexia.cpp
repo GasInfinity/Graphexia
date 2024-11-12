@@ -19,7 +19,7 @@ void Graphexia::Init() {
     this->renderer.ReconstructView(this->view);
 }
 
-nk_bool FilterSequence(const nk_text_edit* edit, const nk_rune unicode) {
+nk_bool FilterSequence(const nk_text_edit*, const nk_rune unicode) {
     return (unicode >= '0' && unicode <= '9') || unicode == ' ';
 }
 
@@ -112,7 +112,7 @@ void Graphexia::Update(nk_context* ctx) {
                 nk_layout_row_dynamic(ctx, 14, 1);
                 if(nk_button_label(ctx, "Render")) {
                     if(this->renderHakimiRandom) {
-                        this->view = GraphView(gpx::CreateFromGraphicSequence(this->havelHakimiSequence), RandomGraphViewRenderer({}, this->havelHakimiSequence.size() * 10, std::default_random_engine{sapp_frame_count()})); 
+                        this->view = GraphView(gpx::CreateFromGraphicSequence(this->havelHakimiSequence), RandomGraphViewRenderer({}, this->havelHakimiSequence.size() * 10, std::default_random_engine{static_cast<u32>(sapp_frame_count())})); 
                     } else {
                         this->view = GraphView(gpx::CreateFromGraphicSequence(this->havelHakimiSequence), CircularGraphViewRenderer({}, this->havelHakimiSequence.size() * 10, this->havelHakimiSequence.size())); 
 
