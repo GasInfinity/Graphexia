@@ -22,6 +22,10 @@ public:
 private:
     void ClearLastSelection();
     void Select(const SelectionType type, const usize id);
+    void RequestDeletion();
+
+    void AddVertex();
+    void AddEdge();
 
     void ChangeMode(GraphexiaMode mode);
 

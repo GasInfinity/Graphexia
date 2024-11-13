@@ -41,6 +41,7 @@ public:
     void UpdateVertexColor(usize id, u32 color);
     void UpdateEdgeColor(usize id, u32 color);
     void DeleteVertex(usize id);
+    void DeleteEdge(usize id);
 
     void SetCameraZoom(f32 zoom);
     f32 GetCameraZoom() const { return this->cameraZoom; }

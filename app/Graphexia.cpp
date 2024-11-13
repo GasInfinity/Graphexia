@@ -261,8 +261,7 @@ void Graphexia::Event(const sapp_event* event) {
                                 
                                 if(vView.Collides(worldPosition)) {
                                     if((this->selectionType & SelectionType::DeletionRequest) != SelectionType::DeletionRequest) {
-                                        this->selectionType = SelectionType::VertexDeletionRequest;
-                                        this->renderer.UpdateVertexColor(this->selectedId, 0xFF0000FF);
+                                        this->RequestDeletion();
                                         break;
                                     }
 
@@ -276,7 +275,24 @@ void Graphexia::Event(const sapp_event* event) {
                             break;
                         }
                         case GraphexiaMode::EditEdges: {
-                            this->Select(SelectionType::None, GraphView::NoId);
+                            if((this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected) {
+                                this->Select(SelectionType::None, GraphView::NoId);
+                                break;
+                            }
+                            
+                            usize selectedEdge = this->view.FindEdge(worldPosition);
+                            
+                            if(this->selectedId == selectedEdge && this->selectedId != GraphView::NoId) {
+                                if((this->selectionType & SelectionType::DeletionRequest) != SelectionType::DeletionRequest) {
+                                    this->RequestDeletion();
+                                    break;
+                                }
+
+                                this->view.EraseEdge(this->selectedId);
+                                this->renderer.ReconstructEdges(this->view.GetGraph().Edges());
+                                this->selectionType = SelectionType::None;
+                                this->selectedId = GraphView::NoId;
+                            }
                             break;
                         }
                         default: break;
@@ -343,6 +359,16 @@ void Graphexia::Select(const SelectionType type, const usize id) {
         } else if((this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected) {
             this->renderer.UpdateVertexColor(this->selectedId, 0x00FF00FF);
         }
+    }
+}
+
+void Graphexia::RequestDeletion() {
+    this->selectionType = this->selectionType | SelectionType::DeletionRequest;
+    
+    if((this->selectionType & SelectionType::EdgeSelected) == SelectionType::EdgeSelected) {
+        this->renderer.UpdateEdgeColor(this->selectedId, 0xFF0000FF);
+    } else if((this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected) {
+        this->renderer.UpdateVertexColor(this->selectedId, 0xFF0000FF);
     }
 }
 
