@@ -19,11 +19,13 @@ jobs:
         uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: latest
+          actions-cache-folder: '.xmake-cache'
 
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
         with:
           version: latest
+          actions-cache-folder: '.emsdk-cache'
 
       - name: Configure and Download dependencies
         run: |
