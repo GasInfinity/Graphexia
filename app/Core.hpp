@@ -25,6 +25,7 @@ enum class SelectionType : u8 {
 
     VertexDrawingEdge = VertexSelected | DrawingEdge,
     VertexDeletionRequest = VertexSelected | DeletionRequest,
+    EdgeDeletionRequest = EdgeSelected | DeletionRequest,
 };
 
 inline SelectionType operator|(SelectionType a, SelectionType b) { return static_cast<SelectionType>(static_cast<u8>(a) | static_cast<u8>(b)); }

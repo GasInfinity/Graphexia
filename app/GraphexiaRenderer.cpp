@@ -149,7 +149,7 @@ void GraphexiaRenderer::UpdateEdgeColor(usize id, u32 color) {
 
 void GraphexiaRenderer::DeleteVertex(usize id) {
     if(id != --this->gVtxBatched) {
-        memmove(&this->gVtxData[id], &this->gVtxData[id+1], (this->gVtxBatched - id - 1) * sizeof(BatchedVertex));
+        memmove(&this->gVtxData[id], &this->gVtxData[id+1], (this->gVtxBatched - id) * sizeof(BatchedVertex));
     }
 
     this->graphDirty = true;
@@ -157,7 +157,7 @@ void GraphexiaRenderer::DeleteVertex(usize id) {
 
 void GraphexiaRenderer::DeleteEdge(usize id) {
     if(id != --this->gEdgesBatched) {
-        memmove(&this->gEdgeData[id], &this->gEdgeData[id+1], (this->gEdgesBatched - id - 1) * sizeof(BatchedEdge));
+        memmove(&this->gEdgeData[id], &this->gEdgeData[id+1], (this->gEdgesBatched - id) * sizeof(BatchedEdge));
     }
 
     this->graphDirty = true;
