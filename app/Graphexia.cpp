@@ -1,4 +1,5 @@
 #include "Graphexia.hpp"
+#include "Core.hpp"
 #include "Graphexia/Algo/Hakimi.hpp"
 #include <Graphexia/GraphTypes.hpp>
 
@@ -174,7 +175,7 @@ void Graphexia::Update(nk_context* ctx) {
 }
 
 void Graphexia::Render() {
-    this->renderer.Render(this->view, this->selectionType, this->selectedId, this->currentMouseWorldPosition); 
+    this->renderer.Render();
 }
 
 void Graphexia::Event(const sapp_event* event) {
@@ -210,9 +211,7 @@ void Graphexia::Event(const sapp_event* event) {
                                 }
                             }
                             
-                            this->ClearLastSelection();
-                            this->selectedId = newSelection;
-                            this->selectionType = SelectionType::VertexSelected; 
+                            this->Select(SelectionType::VertexSelected, newSelection);
 
                             if(this->selectedId != GraphView::NoId) {
                                 const Vertex& vertex = this->view.Vertices()[this->selectedId];
@@ -235,29 +234,19 @@ void Graphexia::Event(const sapp_event* event) {
 
                                     newSelection = this->view.FindEdge(worldPosition);
 
-                                    this->ClearLastSelection();
-                                    this->selectedId = newSelection;
-                                    this->selectionType = SelectionType::EdgeSelected;
-
-                                    if(newSelection != GraphView::NoId) {
-                                        this->renderer.UpdateEdgeColor(newSelection, 0x00FF00FF);
-                                    }
+                                    this->Select(SelectionType::EdgeSelected, newSelection);
                                     break;
                                 }
                             }
 
-                            this->ClearLastSelection();
                             if(this->selectedId == GraphView::NoId) {
-                                this->selectedId = newSelection;
-                                this->selectionType = SelectionType::VertexDrawingEdge;
-                                this->renderer.UpdateVertexColor(this->selectedId, 0x00FF00FF);
+                                this->Select(SelectionType::VertexDrawingEdge, GraphView::NoId);
                                 break;
                             }
 
                             this->view.AddEdge(this->selectedId, newSelection); 
                             this->renderer.AddEdge(this->view.GetGraph().Edges().back());
-                            this->selectionType = SelectionType::None;
-                            this->selectedId = GraphView::NoId;
+                            this->Select(SelectionType::None, GraphView::NoId);
                             break;
                         }
                     }
@@ -288,9 +277,7 @@ void Graphexia::Event(const sapp_event* event) {
                             break;
                         }
                         case GraphexiaMode::EditEdges: {
-                            this->ClearLastSelection();
-                            this->selectionType = SelectionType::None;
-                            this->selectedId = GraphView::NoId;
+                            this->Select(SelectionType::None, GraphView::NoId);
                             break;
                         }
                         default: break;
@@ -346,6 +333,19 @@ void Graphexia::Event(const sapp_event* event) {
     }
 }
 
+void Graphexia::Select(const SelectionType type, const usize id) {
+    this->ClearLastSelection();
+    this->selectionType = type;
+    this->selectedId = id;
+
+    if(this->selectedId != GraphView::NoId) {
+        if((this->selectionType & SelectionType::EdgeSelected) == SelectionType::EdgeSelected) {
+            this->renderer.UpdateEdgeColor(this->selectedId, 0x00FF00FF);
+        } else if((this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected) {
+            this->renderer.UpdateVertexColor(this->selectedId, 0x00FF00FF);
+        }
+    }
+}
 
 void Graphexia::ClearLastSelection() {
     if(this->selectedId != GraphView::NoId) {
@@ -354,6 +354,9 @@ void Graphexia::ClearLastSelection() {
         } else if((this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected) {
             this->renderer.UpdateVertexColor(this->selectedId, 0xFFFFFFFF);
         }
+
+        this->selectionType = SelectionType::None;
+        this->selectedId = GraphView::NoId;
     }
 }
 

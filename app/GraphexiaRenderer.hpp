@@ -30,7 +30,7 @@ struct BatchedEdge {
 class GraphexiaRenderer final {
 public:
     void Init(u32x2 viewport);
-    void Render(const GraphView& view, const SelectionType selectionType, const usize selectedId, const f32x2 worldMousePosition);
+    void Render();
 
     void ReconstructView(const GraphView& view);
     void ReconstructEdges(const std::vector<gpx::Edge>& edges);

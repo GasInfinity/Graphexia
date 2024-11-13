@@ -157,7 +157,7 @@ void GraphexiaRenderer::DeleteVertex(usize id) {
     this->graphDirty = true;
 }
 
-void GraphexiaRenderer::Render(const GraphView&, const SelectionType, const usize, const f32x2) {
+void GraphexiaRenderer::Render() {
     if(this->gVtxBatched == 0) {
         return;
     }

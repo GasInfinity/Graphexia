@@ -21,6 +21,8 @@ public:
     void Event(const sapp_event* event);
 private:
     void ClearLastSelection();
+    void Select(const SelectionType type, const usize id);
+
     void ChangeMode(GraphexiaMode mode);
 
     GraphView view;
