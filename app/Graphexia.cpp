@@ -206,8 +206,7 @@ void Graphexia::Event(const sapp_event* event) {
                                 newSelection = this->view.FindVertex(worldPosition);
 
                                 if(this->selectedId == newSelection && newSelection == GraphView::NoId) {
-                                    this->view.AddVertex(worldPosition);
-                                    this->renderer.AddVertex(this->view.Vertices().back());
+                                    this->AddVertex(worldPosition);
                                 }
                             }
                             
@@ -243,8 +242,7 @@ void Graphexia::Event(const sapp_event* event) {
                                 break;
                             }
 
-                            this->view.AddEdge(this->selectedId, newSelection); 
-                            this->renderer.AddEdge(this->view.GetGraph().Edges().back());
+                            this->AddEdge(this->selectedId, newSelection);
                             this->Select(SelectionType::None, GraphView::NoId);
                             break;
                         }
@@ -261,15 +259,11 @@ void Graphexia::Event(const sapp_event* event) {
                                 
                                 if(vView.Collides(worldPosition)) {
                                     if((this->selectionType & SelectionType::DeletionRequest) != SelectionType::DeletionRequest) {
-                                        this->RequestDeletion();
+                                        this->RequestSelectedDeletion();
                                         break;
                                     }
 
-                                    this->view.EraseVertex(this->selectedId);
-                                    this->renderer.ReconstructEdges(this->view.GetGraph().Edges());
-                                    this->renderer.DeleteVertex(this->selectedId);
-                                    this->selectionType = SelectionType::None;
-                                    this->selectedId = GraphView::NoId;
+                                    this->EraseVertex(this->selectedId);
                                 }
                             }
                             break;
@@ -284,14 +278,11 @@ void Graphexia::Event(const sapp_event* event) {
                             
                             if(this->selectedId == selectedEdge && this->selectedId != GraphView::NoId) {
                                 if((this->selectionType & SelectionType::DeletionRequest) != SelectionType::DeletionRequest) {
-                                    this->RequestDeletion();
+                                    this->RequestSelectedDeletion();
                                     break;
                                 }
 
-                                this->view.EraseEdge(this->selectedId);
-                                this->renderer.ReconstructEdges(this->view.GetGraph().Edges());
-                                this->selectionType = SelectionType::None;
-                                this->selectedId = GraphView::NoId;
+                                this->EraseEdge(this->selectedId);
                             }
                             break;
                         }
@@ -348,6 +339,31 @@ void Graphexia::Event(const sapp_event* event) {
     }
 }
 
+void Graphexia::AddVertex(f32x2 position) {
+    this->view.AddVertex(position);
+    this->renderer.AddVertex(this->view.Vertices().back());
+}
+
+void Graphexia::AddEdge(usize from, usize to) {
+    this->view.AddEdge(from, to); 
+    this->renderer.AddEdge(this->view.GetGraph().Edges().back());
+}
+
+void Graphexia::EraseVertex(usize id) {
+    this->view.EraseVertex(id);
+    this->renderer.EraseVertex(id);
+    this->renderer.ReconstructEdges(this->view.GetGraph().Edges());
+    this->selectionType = SelectionType::None;
+    this->selectedId = GraphView::NoId;
+}
+
+void Graphexia::EraseEdge(usize id) {
+    this->view.EraseEdge(id);
+    this->renderer.EraseEdge(id);
+    this->selectionType = SelectionType::None;
+    this->selectedId = GraphView::NoId;
+}
+
 void Graphexia::Select(const SelectionType type, const usize id) {
     this->ClearLastSelection();
     this->selectionType = type;
@@ -362,7 +378,7 @@ void Graphexia::Select(const SelectionType type, const usize id) {
     }
 }
 
-void Graphexia::RequestDeletion() {
+void Graphexia::RequestSelectedDeletion() {
     this->selectionType = this->selectionType | SelectionType::DeletionRequest;
     
     if((this->selectionType & SelectionType::EdgeSelected) == SelectionType::EdgeSelected) {
