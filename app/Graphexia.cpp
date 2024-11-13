@@ -223,7 +223,6 @@ void Graphexia::Event(const sapp_event* event) {
                             break;
                         }
                         case GraphexiaMode::EditEdges: {
-
                             if(newSelection == GraphView::NoId) {
                                 newSelection = this->view.FindVertex(worldPosition);
 
@@ -240,7 +239,7 @@ void Graphexia::Event(const sapp_event* event) {
                             }
 
                             if(this->selectedId == GraphView::NoId) {
-                                this->Select(SelectionType::VertexDrawingEdge, GraphView::NoId);
+                                this->Select(SelectionType::VertexDrawingEdge, newSelection);
                                 break;
                             }
 
