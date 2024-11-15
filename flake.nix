@@ -26,6 +26,7 @@
           nativeBuildInputs = with pkgs; [
             xmake
             emscripten
+            valgrind
           ] ++ (if system == "aarch64-darwin" then [ ] else [ gdb ]);
         };
       });

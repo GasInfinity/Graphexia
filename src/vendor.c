@@ -7,3 +7,6 @@
 #define NK_IMPLEMENTATION
 #include <nuklear/nuklear.h>
 #include <sokol/util/sokol_nuklear.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>

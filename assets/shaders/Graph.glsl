@@ -12,9 +12,11 @@ const vec2 QuadVertices[6] = vec2[6](
 );
 @end
 
+
 @block UnpackVec4
+// unpackUnorm4x8 is not supported on glsl 300 es...
 vec4 UnpackVec4(uint v) {
-    return vec4(((v >> 24) / 255), (((v >> 16) & 0xFFu) / 255), (((v >> 8) & 0xFFu) / 255), ((v & 0xFFu) / 255));
+    return vec4(((v & 0xFFu) / 255), (((v >> 8) & 0xFFu) / 255), (((v >> 16) & 0xFFu) / 255), ((v >> 24) / 255));
 }
 @end
 
@@ -26,7 +28,7 @@ layout(binding=0) uniform sampler BatchDataSmp;
 // X | Y | Size | Color
 layout(binding=0) uniform utexture2D VtxBatchDataTex;
 
-layout(binding=0) uniform GlobalData {
+layout(binding=0) uniform GlobalGraphData {
     vec4 MVP1;
     vec4 MVP2WithUnused;
 };

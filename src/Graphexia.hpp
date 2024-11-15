@@ -4,7 +4,7 @@
 #include "GraphView.hpp"
 
 #include "Core.hpp"
-#include "GraphexiaRenderer.hpp"
+#include "GPXRenderer.hpp"
 
 #include <sokol/sokol_app.h>
 #include <nuklear/nuklear.h>
@@ -32,7 +32,7 @@ private:
     void ChangeMode(GraphexiaMode mode);
 
     GraphView view;
-    GraphexiaRenderer renderer;
+    GPXRenderer renderer;
 
     GraphexiaMode mode;
     SelectionType selectionType;

@@ -13,7 +13,7 @@
 #include <iostream>
 
 void init(void* userdata) {
-    Graphexia* graphexia = reinterpret_cast<Graphexia*>(userdata);
+    Graphexia* graphexia = static_cast<Graphexia*>(userdata);
 
     sg_desc sg{};
     sg.logger.func = slog_func;
@@ -39,7 +39,7 @@ void init(void* userdata) {
 }
 
 void frame(void* userdata) {
-    Graphexia* graphexia = reinterpret_cast<Graphexia*>(userdata);
+    Graphexia* graphexia = static_cast<Graphexia*>(userdata);
 
     nk_context* nuklearContext = snk_new_frame();
     graphexia->Update(nuklearContext);
@@ -58,7 +58,7 @@ void frame(void* userdata) {
 }
 
 void cleanup(void* userdata) {
-    Graphexia* graphexia = reinterpret_cast<Graphexia*>(userdata);
+    Graphexia* graphexia = static_cast<Graphexia*>(userdata);
     delete graphexia;
 
     snk_shutdown();
@@ -97,5 +97,6 @@ sapp_desc sokol_main(int argc, char **argv) {
     desc.cleanup_userdata_cb = cleanup;
     desc.event_userdata_cb = event;
     desc.user_data = new Graphexia();
+
     return desc;
 }

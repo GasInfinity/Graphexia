@@ -1,21 +1,26 @@
 ---@diagnostic disable: undefined-global
 add_rules("mode.debug", "mode.release")
+add_rules("plugin.compile_commands.autoupdate", {outputdir = "build/", lsp = "clangd"})
 
 local lib = {
-    "src/Graph.cpp",
-    "src/GraphMatrix.cpp",
-    "src/GraphTypes.cpp",
-    "src/Algo/Hakimi.cpp"
+    "lib/Graph.cpp",
+    "lib/GraphMatrix.cpp",
+    "lib/GraphTypes.cpp",
+    "lib/Algo/Hakimi.cpp"
 }
 
 local app = {
-    "app/vendor.c",
-    "app/main.cpp",
-    "app/GraphView.cpp",
-    "app/Graphexia.cpp",
-    "app/GraphexiaRenderer.cpp",
+    "src/vendor.c",
+    "src/main.cpp",
+    "src/GraphView.cpp",
+    "src/Graphexia.cpp",
+    "src/GPXRenderer.cpp",
+    "src/GPXFontRenderer.cpp",
+    "src/Render/StaticTextureBatch.cpp",
+    "src/Util/BMFont.cpp",
 
-    "assets/shaders/Graph.glsl"
+    "assets/shaders/Graph.glsl",
+    "assets/shaders/BMFont.glsl"
 }
 
 if is_plat("linux") then
@@ -40,9 +45,7 @@ rule("sokol-shdc")
     set_extensions(".glsl")
     on_load(function (target)
         local headerdir = path.join(target:autogendir(), "rules", "sokol-shdc")
-        if not os.isdir(headerdir) then
-            os.mkdir(headerdir)
-        end
+        if not os.isdir(headerdir) then os.mkdir(headerdir) end
         target:add("includedirs", headerdir)
     end)
     before_buildcmd_file(function (target, batchcmds, sourcefile, opt)
@@ -76,6 +79,16 @@ rule("sokol-shdc")
         batchcmds:set_depcache(target:dependfile(headerfile))
     end)
 
+
+rule("copy_assets")
+    after_build(function (target, batchcmds)
+        local runAssets = path.join(target:rundir(), "assets")
+        if not os.isdir(runAssets) then os.mkdir(runAssets) end
+
+        print("Copying assets: 'fonts/'")
+        os.cp("$(projectdir)/assets/fonts", runAssets)
+    end)
+
 target("graphexia")
     if is_plat("wasm") then
         add_options("wgpu")
@@ -97,6 +110,7 @@ target("graphexia")
     set_policy("build.sanitizer.undefined", true)
 
     add_includedirs("include", { public = true })
+    add_includedirs("src")
     add_includedirs("vendor/include")
 
     add_files(lib)
@@ -111,7 +125,8 @@ target("graphexia")
                 "NK_INCLUDE_STANDARD_VARARGS")
 
     if is_plat("wasm") then
-        add_ldflags("--shell-file $(projectdir)/assets/web/shell.html")
+        add_ldflags("--shell-file ./assets/web/shell.html")
+        add_ldflags("--embed-file ./assets/fonts/")
         add_ldflags("-sINITIAL_MEMORY=67108864") -- 64 MB. TODO: Make it a config option...
 
         if has_config("wgpu") then
@@ -120,19 +135,23 @@ target("graphexia")
             add_ldflags("-sMAX_WEBGL_VERSION=2")
             add_defines("SOKOL_GLES3")
         end
-    elseif is_plat("linux") then
-        add_packages("X11", "Xi", "Xcursor", "dl", "pthread", "m")
+    else
+        add_rules("copy_assets")
 
-        if has_config("use_egl") then
-            add_packages("EGL")
-            add_defines("SOKOL_FORCE_EGL")
-        end
+        if is_plat("linux") then
+            add_packages("X11", "Xi", "Xcursor", "dl", "pthread", "m")
 
-        if has_config("gles") then
-            add_packages("GLESv2")
-            add_defines("SOKOL_GLES3")
-        else
-            add_packages("GL")
-            add_defines("SOKOL_GLCORE")
+            if has_config("use_egl") then
+                add_packages("EGL")
+                add_defines("SOKOL_FORCE_EGL")
+            end
+
+            if has_config("gles") then
+                add_packages("GLESv2")
+                add_defines("SOKOL_GLES3")
+            else
+                add_packages("GL")
+                add_defines("SOKOL_GLCORE")
+            end
         end
     end

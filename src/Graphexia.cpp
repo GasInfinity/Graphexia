@@ -216,7 +216,6 @@ void Graphexia::Event(const sapp_event* event) {
                                 const Vertex& vertex = this->view.Vertices()[this->selectedId];
                                 this->selectedVertexMouseOffset = { vertex.position.x - worldPosition.x, vertex.position.y - worldPosition.y };
                                 this->currentlyDraggingVertex = true;
-                                this->renderer.UpdateVertexColor(this->selectedId, 0x00FF00FF);
                             }
 
                             break;
@@ -355,6 +354,7 @@ void Graphexia::EraseVertex(usize id) {
     this->renderer.ReconstructEdges(this->view.GetGraph().Edges());
     this->selectionType = SelectionType::None;
     this->selectedId = GraphView::NoId;
+    this->currentlyDraggingVertex = false;
 }
 
 void Graphexia::EraseEdge(usize id) {
@@ -371,9 +371,9 @@ void Graphexia::Select(const SelectionType type, const usize id) {
 
     if(this->selectedId != GraphView::NoId) {
         if((this->selectionType & SelectionType::EdgeSelected) == SelectionType::EdgeSelected) {
-            this->renderer.UpdateEdgeColor(this->selectedId, 0x00FF00FF);
+            this->renderer.UpdateEdgeColor(this->selectedId, Rgba8(0x00FF00FF));
         } else if((this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected) {
-            this->renderer.UpdateVertexColor(this->selectedId, 0x00FF00FF);
+            this->renderer.UpdateVertexColor(this->selectedId, Rgba8(0x00FF00FF));
         }
     }
 }
@@ -382,18 +382,18 @@ void Graphexia::RequestSelectedDeletion() {
     this->selectionType = this->selectionType | SelectionType::DeletionRequest;
     
     if((this->selectionType & SelectionType::EdgeSelected) == SelectionType::EdgeSelected) {
-        this->renderer.UpdateEdgeColor(this->selectedId, 0xFF0000FF);
+        this->renderer.UpdateEdgeColor(this->selectedId, Rgba8(0xFF0000FF));
     } else if((this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected) {
-        this->renderer.UpdateVertexColor(this->selectedId, 0xFF0000FF);
+        this->renderer.UpdateVertexColor(this->selectedId, Rgba8(0xFF0000FF));
     }
 }
 
 void Graphexia::ClearLastSelection() {
     if(this->selectedId != GraphView::NoId) {
         if((this->selectionType & SelectionType::EdgeSelected) == SelectionType::EdgeSelected) {
-            this->renderer.UpdateEdgeColor(this->selectedId, 0xFFFFFFFF);
+            this->renderer.UpdateEdgeColor(this->selectedId, Rgba8(0xFFFFFFFF));
         } else if((this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected) {
-            this->renderer.UpdateVertexColor(this->selectedId, 0xFFFFFFFF);
+            this->renderer.UpdateVertexColor(this->selectedId, Rgba8(0xFFFFFFFF));
         }
 
         this->selectionType = SelectionType::None;
