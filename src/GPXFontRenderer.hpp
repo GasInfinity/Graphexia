@@ -45,19 +45,12 @@ private:
     std::unordered_map<char32_t, GlyphData> glyphs;
     Graphexia_GlobalFontData_t* globalData;
 
-
-    StaticTextureBatch<BatchedTextureChrDimensions, BatchedChrData, IMG_ChrBatchDataTex, SMP_BatchDataSmp> batchedCharacters;
-    sg_shader fontShader;
-    sg_pipeline fontPipeline;
     sg_sampler fontSampler;
     sg_image fontAtlas;
     sg_bindings fontBindings;
+    StaticTextureBatch<BatchedTextureChrDimensions, BatchedChrData, IMG_ChrBatchDataTex, SMP_BatchDataSmp> batchedCharacters;
 
-    sg_sampler dataSampler;
-    sg_image chrsImage;
     BatchedChrData chrsData[(BatchedTextureChrDimensions * BatchedTextureChrDimensions) / 2];
-    usize chrsBatched;
-    bool chrsDirty;
 };
 
 #endif

@@ -58,14 +58,6 @@ void GPXFontRenderer::DrawText(f32x2 position, f32 fontSize, std::string_view te
 
 void GPXFontRenderer::DrawCharacter(f32x2 position, f32 fontSize, char32_t chr) {
     GlyphData& glyph = this->GetGlyphData(chr);
-
-    // this->chrsData[this->chrsBatched++] = {
-    //     position, fontSize, Rgba8(0xFFFFFFFF), glyph.x1, glyph.y1,
-    //     glyph.x2, glyph.y1,
-    //     glyph.x1, glyph.y2,
-    //     glyph.x2, glyph.y2
-    // };
-    this->chrsDirty = true;
 }
 
 void GPXFontRenderer::Render() {
