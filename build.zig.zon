@@ -1,0 +1,19 @@
+.{
+    .name = "Graphexia",
+    .version = "0.0.1",
+    //.minimum_zig_version = "0.11.0",
+
+    .paths = .{
+        "src",
+        "build.zig",
+        "build.zig.zon",
+        "LICENSE",
+        "README.md",
+    },
+    .dependencies = .{
+        .emsdk = .{
+            .url = "git+https://github.com/emscripten-core/emsdk?ref=3.1.71#59108b0e222d4c38530a5f2bebcecc7db965f52d",
+            .hash = "12201d024e47d97dea4d1d6024a9cf1b35ca8be8e4fa1a0ecf6ee9080e479467183a",
+        },
+    },
+}

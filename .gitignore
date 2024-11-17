@@ -1,5 +1,10 @@
+*.glsl.h
+
 .xmake
 .cache
 build
+
+zig-out
+.zig-cache
 
 compile_commands.json
