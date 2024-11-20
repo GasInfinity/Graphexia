@@ -53,6 +53,8 @@ namespace gpx {
         void EraseEdge(usize id);
         void EraseVertex(usize id);
 
+        f32& EdgeWeight(usize id) { return this->edges[id].weight; }
+
         usize Vertices() const { return this->vertices; }
         const std::vector<Edge>& Edges() const { return this->edges; }
         const std::vector<usize>& EdgesForVertex(usize id) const { return this->edgesForVertex[id]; }

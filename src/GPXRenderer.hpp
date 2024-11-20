@@ -32,6 +32,7 @@ struct BatchedEdge {
 class GPXRenderer final {
 public:
     void Init(u32x2 viewport);
+    void Update(const GraphView& view);
     void Render();
 
     void ReconstructView(const GraphView& view);
@@ -43,6 +44,7 @@ public:
     void UpdateVertexPosition(usize id, f32x2 position);
     void UpdateVertexColor(usize id, u8x4 color);
     void UpdateEdgeColor(usize id, u8x4 color);
+    void UpdateWeights();
 
     void EraseVertex(usize id);
     void EraseEdge(usize id);
@@ -64,6 +66,7 @@ private:
 
     StaticTextureBatch<BatchedVtxDimensions, BatchedVertex, IMG_VtxBatchDataTex, SMP_BatchDataSmp> batchedVertices; 
     StaticTextureBatch<BatchedEdgeDimensions, BatchedEdge, IMG_EdgeBatchDataTex, SMP_BatchDataSmp> batchedEdges; 
+    bool weightsDirty;
 
     Graphexia_GlobalGraphData_t gGlobalData;
     GPXFontRenderer fontRenderer;

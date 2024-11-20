@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 199309L
+
 #define SOKOL_IMPL
 #include <sokol/sokol_log.h>
 #include <sokol/sokol_app.h>

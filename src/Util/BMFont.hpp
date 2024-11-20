@@ -4,25 +4,47 @@
 #include <Graphexia/Core.hpp>
 #include <unordered_map>
 #include <string>
-#include <sstream>
 #include <vector>
+#include <istream>
 
+
+enum class BMInfoFlags : u8 {
+    None = 0,
+    Smooth = 1 << 0,
+    Unicode = 1 << 1,
+    Italic = 1 << 2,
+    Bold = 1 << 3,
+    FixedHeight = 1 << 4,
+};
+
+inline BMInfoFlags operator|(BMInfoFlags a, BMInfoFlags b) { return static_cast<BMInfoFlags>(static_cast<u8>(a) | static_cast<u8>(b)); }
+inline BMInfoFlags operator&(BMInfoFlags a, BMInfoFlags b) { return static_cast<BMInfoFlags>(static_cast<u8>(a) & static_cast<u8>(b)); }
 
 struct BMInfo {
-    std::string name;
     i16 fontSize;
-    u8 bitfield, charSet;
+    BMInfoFlags flags;
+    u8 charSet;
     u16 stretchH;
-    u8 antialiased;
+    bool antialiased;
     u8 paddingUp, paddingRight, paddingDown, paddingLeft;
     u8 spacingHorizontal, spacingVertical;
     u8 outlineThickness;
+    std::string name;
 };
+
+enum class BMCommonFlags : u8 {
+    None = 0,
+    Packed = 1 << 7
+};
+
+inline BMCommonFlags operator|(BMCommonFlags a, BMCommonFlags b) { return static_cast<BMCommonFlags>(static_cast<u8>(a) | static_cast<u8>(b)); }
+inline BMCommonFlags operator&(BMCommonFlags a, BMCommonFlags b) { return static_cast<BMCommonFlags>(static_cast<u8>(a) & static_cast<u8>(b)); }
 
 struct BMCommon {
     u16 lineHeight, base;
     u16 scaleW, scaleH;
-    u8 bitfield;
+    u16 pages;
+    BMCommonFlags flags;
     u8 a, r, g, b;
 };
 
@@ -43,17 +65,24 @@ struct BMKerning {
 };
 
 class BMFont final {
-    constexpr BMFont(BMInfo&& info, BMCommon&& common, std::vector<BMPage>&& pages, std::unordered_map<u32, BMChar>&& chars, std::unordered_map<std::pair<u32, u32>, BMKerning>&& kerning); 
+public:
+    explicit BMFont() = default;
+    explicit BMFont(BMInfo&& info, BMCommon&& common, std::vector<BMPage>&& pages, std::unordered_map<u32, BMChar>&& chars, std::unordered_map<u64, BMKerning>&& kerning); 
 
+    const BMInfo& Info() const { return this->info; }
+    const BMCommon& Common() const { return this->common; }
 
-    static std::optional<BMFont> LoadFromStream(std::stringstream stream);
+    const std::vector<BMPage>& Pages() const { return this->pages; }
+    const std::unordered_map<u32, BMChar>& Chars() const { return this->chars; }
+
+    static BMFont LoadFromStream(std::istream& stream);
 private:
     BMInfo info;   
     BMCommon common;
 
     std::vector<BMPage> pages;
     std::unordered_map<u32, BMChar> chars;
-    std::unordered_map<std::pair<u32, u32>, BMKerning> kerning;
+    std::unordered_map<u64, BMKerning> kerning;
 };
 
 #endif

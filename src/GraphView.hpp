@@ -58,6 +58,8 @@ struct GraphView final {
     void MoveVertex(usize id, f32x2 position) { this->vertices[id].position = position; }
     Vertex& View(usize id) { return this->vertices[id]; }
 
+    f32& EdgeWeight(usize id) { return this->graph.EdgeWeight(id); }
+
     const std::vector<Vertex>& Vertices() const { return this->vertices; }
     const gpx::Graph& GetGraph() const { return this->graph; }
 private:

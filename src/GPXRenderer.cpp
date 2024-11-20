@@ -1,9 +1,12 @@
 #include "GPXRenderer.hpp"
 
 #include "Core.hpp"
-#include "GPXFontRenderer.hpp"
 #include "GraphView.hpp"
+#include "GPXFontRenderer.hpp"
+
 #include <cstring>
+#include <format>
+#include <string>
 #include <vector>
 
 // FIXME: Check if failed to create shader and pipeline
@@ -31,6 +34,7 @@ void GPXRenderer::Init(u32x2 viewport) {
 void GPXRenderer::ReconstructView(const GraphView& view) {
     const gpx::Graph& graph = view.GetGraph();
 
+    this->weightsDirty = true;
     if(!graph.Vertices()) {
         this->batchedVertices.ClearBatched();
         this->batchedEdges.ClearBatched();
@@ -66,6 +70,7 @@ void GPXRenderer::ReconstructEdges(const std::vector<gpx::Edge>& edges) {
     }
 
     this->batchedEdges.SetBatchedCount(edges.size());
+    this->weightsDirty = true;
 }
 
 void GPXRenderer::AddVertex(const Vertex& view) {
@@ -77,11 +82,13 @@ void GPXRenderer::AddEdge(const gpx::Edge& edge) {
     // HACK: Assume less than UINT_MAX
     this->batchedEdges.Data().at(this->batchedEdges.BatchedCount()) = {static_cast<u32>(edge.fromId), static_cast<u32>(edge.toId), 1, Rgba8(0xFFFFFFFF)};
     this->batchedEdges.SetBatchedCount(this->batchedEdges.BatchedCount() + 1);
+    this->weightsDirty = true;
 }
 
 void GPXRenderer::UpdateVertexPosition(usize id, f32x2 position) {
     this->batchedVertices.Data().at(id).position = position;
     this->batchedVertices.FlagDirty();
+    this->weightsDirty = true;
 }
 
 void GPXRenderer::UpdateVertexColor(usize id, u8x4 color) {
@@ -92,6 +99,10 @@ void GPXRenderer::UpdateVertexColor(usize id, u8x4 color) {
 void GPXRenderer::UpdateEdgeColor(usize id, u8x4 color) {
     this->batchedEdges.Data().at(id).color = color;
     this->batchedEdges.FlagDirty();
+}
+
+void GPXRenderer::UpdateWeights() {
+    this->weightsDirty = true;
 }
 
 void GPXRenderer::EraseVertex(usize id) {
@@ -114,6 +125,34 @@ void GPXRenderer::EraseEdge(usize id) {
     }
 
     this->batchedEdges.SetBatchedCount(newSize);
+    this->weightsDirty = true;
+}
+
+void GPXRenderer::Update(const GraphView& view) {
+    this->batchedEdges.Update();
+    this->batchedVertices.Update();
+
+    if(this->weightsDirty) {
+        this->fontRenderer.Clear();
+        this->fontRenderer.DrawText({-32.5, -6}, 12, "Graphexia");
+
+        std::string weightString;
+        weightString.reserve(20);
+        for (const gpx::Edge& edge : view.GetGraph().Edges()) {
+            const Vertex& from = view.Vertices()[edge.fromId]; 
+            const Vertex& to = view.Vertices()[edge.toId]; 
+            
+            f32 x = (from.position.x + to.position.x) / 2.f;
+            f32 y = (from.position.y + to.position.y) / 2.f - 3.f;
+            weightString.clear();
+            std::format_to(std::back_inserter(weightString), "{:.2f}", edge.weight);
+            this->fontRenderer.DrawText({x, y}, 8, weightString);
+        }
+
+        this->weightsDirty = false;
+    } 
+
+    this->fontRenderer.Update();
 }
 
 void GPXRenderer::Render() {

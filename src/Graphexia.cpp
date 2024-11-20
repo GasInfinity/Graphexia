@@ -1,10 +1,12 @@
 #include "Graphexia.hpp"
 #include "Core.hpp"
-#include "Graphexia/Algo/Hakimi.hpp"
 #include <Graphexia/GraphTypes.hpp>
+#include <Graphexia/Algo/Hakimi.hpp>
 
 #include <sokol/sokol_gfx.h>
 
+#include <optional>
+#include <limits>
 #include <algorithm>
 #include <random>
 
@@ -22,8 +24,6 @@ nk_bool FilterSequence(const nk_text_edit*, const nk_rune unicode) {
 }
 
 void Graphexia::Update(nk_context* ctx) {
-    this->renderer.SetViewport({static_cast<u32>(sapp_width()), static_cast<u32>(sapp_height())});
-
     const gpx::Graph& graph = this->view.GetGraph();
     nk_style_hide_cursor(ctx);
 
@@ -58,6 +58,17 @@ void Graphexia::Update(nk_context* ctx) {
             this->selectionType = SelectionType::None;
             this->selectedId = GraphView::NoId;
             this->renderer.ReconstructView(this->view);
+        }
+
+        // HACK
+        if(nk_button_label(ctx, "Clear Graph Color")) {
+            for (usize i = 0; i < graph.Vertices(); ++i) {
+                this->renderer.UpdateVertexColor(i, Rgba8(0xFFFFFFFF)); 
+            }
+
+            for (usize i = 0; i < graph.Edges().size(); ++i) {
+                this->renderer.UpdateEdgeColor(i, Rgba8(0xFFFFFFFF)); 
+            }
         }
 
         nk_layout_row_dynamic(ctx, 14, 1);
@@ -124,6 +135,74 @@ void Graphexia::Update(nk_context* ctx) {
             }
             nk_tree_pop(ctx);
         }
+
+        nk_layout_row_dynamic(ctx, 14, 1);
+        if(nk_tree_push(ctx, NK_TREE_TAB, "Kruskal", NK_MINIMIZED)) {
+            if(nk_button_label(ctx, "Setup")) {
+                this->ClearLastSelection();
+                this->kruskalState = gpx::SetupKruskal(this->view.GetGraph());
+            }
+
+            if(nk_button_label(ctx, "Iterate")) {
+                this->ClearLastSelection(); 
+
+                gpx::IterateKruskal(this->view.GetGraph(), this->kruskalState);
+
+                for (const usize edgeId : this->kruskalState.result) {
+                    const gpx::Edge& edge = graph.Edges()[edgeId];
+                    this->renderer.UpdateVertexColor(edge.fromId, Rgba8(0x0000FFFF));
+                    this->renderer.UpdateVertexColor(edge.toId, Rgba8(0x0000FFFF));
+                    this->renderer.UpdateEdgeColor(edgeId, Rgba8(0x0000FFFF)); 
+                }
+            }
+
+            nk_tree_pop(ctx);
+        }
+
+        if(nk_tree_push(ctx, NK_TREE_TAB, "Search", NK_MINIMIZED)) {
+            if(nk_button_label(ctx, "Setup BFS")) {
+                this->ClearLastSelection();
+                this->bfsState = gpx::SetupBFS(this->view.GetGraph(), 0, std::nullopt);
+            }
+
+            if(nk_button_label(ctx, "Iterate BFS")) {
+                this->ClearLastSelection(); 
+
+                gpx::IterateBFS(this->view.GetGraph(), this->bfsState);
+
+                for (const usize edgeId : this->bfsState.result) {
+                    const gpx::Edge& edge = graph.Edges()[edgeId];
+                    this->renderer.UpdateVertexColor(edge.fromId, Rgba8(0x0000FFFF));
+                    this->renderer.UpdateVertexColor(edge.toId, Rgba8(0x0000FFFF));
+                    this->renderer.UpdateEdgeColor(edgeId, Rgba8(0x0000FFFF)); 
+                }
+
+                this->renderer.UpdateVertexColor(this->bfsState.visiting[this->bfsState.current - 1], Rgba8(0xFF0000FF));
+            }
+
+            nk_spacer(ctx);
+
+            if(nk_button_label(ctx, "Setup DFS")) {
+                this->ClearLastSelection();
+                this->dfsState = gpx::SetupDFS(this->view.GetGraph(), 0, std::nullopt);
+            }
+
+            if(nk_button_label(ctx, "Iterate DFS")) {
+                this->ClearLastSelection(); 
+
+                gpx::IterateDFS(this->view.GetGraph(), this->dfsState);
+
+                for (const usize edgeId : this->dfsState.result) {
+                    const gpx::Edge& edge = graph.Edges()[edgeId];
+                    this->renderer.UpdateVertexColor(edge.fromId, Rgba8(0x0000FFFF));
+                    this->renderer.UpdateVertexColor(edge.toId, Rgba8(0x0000FFFF));
+                    this->renderer.UpdateEdgeColor(edgeId, Rgba8(0x0000FFFF)); 
+                }
+
+                this->renderer.UpdateVertexColor(this->dfsState.last, Rgba8(0xFF0000FF));
+            }
+            nk_tree_pop(ctx);
+        }
     }
     nk_end(ctx);
 
@@ -159,9 +238,16 @@ void Graphexia::Update(nk_context* ctx) {
                 if(this->selectedId != GraphView::NoId) {
                     if((this->selectionType & SelectionType::EdgeSelected) == SelectionType::EdgeSelected) {
                         const gpx::Edge& edge = graph.Edges()[this->selectedId];
+                        f32& edgeWeight = this->view.EdgeWeight(this->selectedId); 
+                        f32 before = edgeWeight;
+
                         nk_label(ctx, "Edge", NK_TEXT_LEFT);
                         nk_labelf(ctx, NK_TEXT_LEFT, "%zu -> %zu", edge.fromId, edge.toId);
-                        nk_labelf(ctx, NK_TEXT_LEFT, "Weight: %.2f", edge.weight);
+                        nk_property_float(ctx, "Weight", 0, &edgeWeight, std::numeric_limits<f32>::infinity(), 1.f, .1f);
+
+                        if(std::abs(before - edgeWeight) < 0.001) {
+                            this->renderer.UpdateWeights();
+                        }
                     } else if((this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected) {
                         nk_label(ctx, "Creating edge", NK_TEXT_LEFT);
                         nk_labelf(ctx, NK_TEXT_LEFT, "From ID: %zu", this->selectedId);
@@ -172,6 +258,9 @@ void Graphexia::Update(nk_context* ctx) {
         }
     }
     nk_end(ctx);
+
+    this->renderer.SetViewport({static_cast<u32>(sapp_width()), static_cast<u32>(sapp_height())});
+    this->renderer.Update(view);
 }
 
 void Graphexia::Render() {

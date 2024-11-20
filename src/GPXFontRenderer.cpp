@@ -1,15 +1,19 @@
 #include "GPXFontRenderer.hpp"
+#include "Util/BMFont.hpp"
 
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <filesystem>
+#include <iostream>
 #include <stb/stb_image.h>
 
 #include <cassert>
 #include <fstream>
-#include <string>
 
 // FIXME: Refactor!
 void GPXFontRenderer::Init(Graphexia_GlobalFontData_t* globalData) {
-    this->LoadFont();
+    this->LoadFont("sans-serif");
     this->globalData = globalData;
 
     sg_sampler_desc fontSamplerDesc{};
@@ -27,13 +31,12 @@ void GPXFontRenderer::Init(Graphexia_GlobalFontData_t* globalData) {
     this->batchedCharacters = StaticTextureBatch<BatchedTextureChrDimensions, BatchedChrData, IMG_ChrBatchDataTex, SMP_BatchDataSmp>::Create(
         Graphexia_BMFont_shader_desc(sg_query_backend()), fontBindings 
     ).value();
-
 }
 
 void GPXFontRenderer::DrawText(f32x2 position, f32 fontSize, std::string_view text) {
     f32x2 currentPosition = position;
 
-    f32 scale = std::min(fontSize / 82.0, 1.0);
+    f32 scale = std::min(fontSize / static_cast<f32>(this->font.Info().fontSize), 1.f);
     u16 unormScale = scale * UINT16_MAX;
 
     auto& batchedCharactersData = this->batchedCharacters.Data();
@@ -56,8 +59,17 @@ void GPXFontRenderer::DrawText(f32x2 position, f32 fontSize, std::string_view te
     this->batchedCharacters.SetBatchedCount(currentBatched);
 }
 
+// TODO
 void GPXFontRenderer::DrawCharacter(f32x2 position, f32 fontSize, char32_t chr) {
     GlyphData& glyph = this->GetGlyphData(chr);
+}
+
+void GPXFontRenderer::Clear() {
+    this->batchedCharacters.ClearBatched(); 
+}
+
+void GPXFontRenderer::Update() {
+    this->batchedCharacters.Update();
 }
 
 void GPXFontRenderer::Render() {
@@ -72,59 +84,54 @@ GlyphData& GPXFontRenderer::GetGlyphData(char32_t chr) {
     return foundGlyph != this->glyphs.end() ? foundGlyph->second : this->glyphs.at(U'�');
 }
 
-void GPXFontRenderer::LoadFont() {
-    std::ifstream defFile("./assets/fonts/sans-serif/def.fnt");
+void GPXFontRenderer::LoadFont(std::string_view fontName) {
+    std::filesystem::path fontPath = "./assets/fonts/";
+    fontPath /= fontName;
+    std::ifstream defFile((fontPath / "def.fnt"));
+    this->font = BMFont::LoadFromStream(defFile);
 
-    std::string line;
-    std::getline(defFile, line);
-    std::getline(defFile, line);
-    std::getline(defFile, line);
-    std::getline(defFile, line);
+    const BMCommon& common = this->font.Common();
+    const std::unordered_map<u32, BMChar>& chars = this->font.Chars();
+    this->glyphs.reserve(chars.size());
 
-    const int Size = 512;
-
-    usize charsCount = std::strtoull((line.begin() + line.find('=') + 1).base(), nullptr, 10);
-    this->glyphs.reserve(charsCount);
-
-    for(usize i = 0; i < charsCount; ++i) {
-        if(!std::getline(defFile, line)) {
-            assert(false);
-        }
-
-        char32_t id = std::strtol((line.begin() + line.find("id") + 3).base(), nullptr, 10);
-        usize x = std::strtol((line.begin() + line.find('x') + 2).base(), nullptr, 10);
-        usize y = std::strtol((line.begin() + line.find('y') + 2).base(), nullptr, 10);
-        usize width = std::strtol((line.begin() + line.find("width") + 6).base(), nullptr, 10);
-        usize height = std::strtol((line.begin() + line.find("height") + 7).base(), nullptr, 10);
-        i16 xoffset= std::strtol((line.begin() + line.find("xoffset") + 8).base(), nullptr, 10);
-        i16 yoffset = std::strtol((line.begin() + line.find("yoffset") + 8).base(), nullptr, 10);
-        usize xadvance = std::strtol((line.begin() + line.find("xadvance") + 9).base(), nullptr, 10);
-        // We can skip page and channel for now
-
-        // std::cout << static_cast<u32>(id) << "|: " << xoffset << ", " << yoffset << " || " << xadvance << std::endl;
+    for (auto [id, ch] : chars) {
         this->glyphs[id] = {
-            static_cast<f16>(x / static_cast<f32>(Size)), static_cast<f16>(y / static_cast<f32>(Size)),
-            static_cast<f16>((x + width) / static_cast<f32>(Size)), static_cast<f16>((y + height) / static_cast<f32>(Size)),
-            static_cast<u16>(width), static_cast<u16>(height),
-            static_cast<i8>(xoffset), static_cast<i8>(yoffset),
-            static_cast<u16>(xadvance)
-        };
+            static_cast<f16>(ch.x / static_cast<f32>(common.scaleW)), static_cast<f16>(ch.y / static_cast<f32>(common.scaleH)),
+            static_cast<f16>((ch.x + ch.width) / static_cast<f32>(common.scaleW)), static_cast<f16>((ch.y + ch.height) / static_cast<f32>(common.scaleH)),
+            ch.height,
+            static_cast<i8>(ch.xOffset), static_cast<i8>(ch.yOffset),
+            static_cast<u16>(ch.xAdvance)
+        }; 
     }
+    
+    const BMPage& first = this->font.Pages()[0];
+    std::clog << "Loading font atlas for " << this->font.Info().name << " at: " << (fontPath / first.file) << std::endl;
+    FILE* atlasImage = fopen((fontPath / first.file).c_str(), "rb");
 
-    FILE* atlasImage = fopen("./assets/fonts/sans-serif/base.png", "r");
+    if(!atlasImage) {
+        std::cerr << "Error opening atlas image" << std::endl;
+        std::abort();
+    }
 
     int w, h, c;
     stbi_uc* data = stbi_load_from_file(atlasImage, &w, &h, &c, 4);
 
+    if(!data) {
+        std::cerr << "Error parsing png" << std::endl;
+        std::cerr << stbi_failure_reason() << std::endl;
+        std::abort();
+    }
+
     sg_image_desc fontAtlasDesc{};
     fontAtlasDesc.label = "Font Atlas";
-    fontAtlasDesc.width = Size;
-    fontAtlasDesc.height = Size;
+    fontAtlasDesc.width = common.scaleW;
+    fontAtlasDesc.height = common.scaleH;
     fontAtlasDesc.pixel_format = SG_PIXELFORMAT_RGBA8;
     fontAtlasDesc.usage = SG_USAGE_IMMUTABLE;
     fontAtlasDesc.num_mipmaps = 1;
-    fontAtlasDesc.data.subimage[0][0] = { .ptr = data, .size = Size * Size * 4 };
+    fontAtlasDesc.data.subimage[0][0] = { .ptr = data, .size = static_cast<usize>(common.scaleW) * common.scaleH * 4 };
     this->fontAtlas = sg_make_image(&fontAtlasDesc);
 
     stbi_image_free(data);
+    fclose(atlasImage);
 }

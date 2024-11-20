@@ -4,6 +4,7 @@
 #include "Core.hpp"
 
 #include <array>
+#include <cstdlib>
 #include <sokol/sokol_gfx.h>
 #include <memory>
 #include <optional>
@@ -14,6 +15,7 @@ namespace detail {
     extern usize ShaderNonFilteringSamplerRef;
 } // namespace detail
 
+// FIXME: Add destructor
 template<usize TextureSize, typename BatchedData, usize BatchedImageBinding, usize BatchedSamplerBinding>
 class StaticTextureBatch final {
 private:
@@ -46,6 +48,8 @@ public:
     StaticTextureBatch(StaticTextureBatch<TextureSize, BatchedData, BatchedImageBinding, BatchedSamplerBinding>&&) = default;
     StaticTextureBatch<TextureSize, BatchedData, BatchedImageBinding, BatchedSamplerBinding>& operator =(StaticTextureBatch<TextureSize, BatchedData, BatchedImageBinding, BatchedSamplerBinding>&&) noexcept = default;
 
+    void Update();
+
     template<typename R>
     void Render(R beforeDrawCall);
 
@@ -63,18 +67,21 @@ public:
 };
 
 template<usize TextureSize, typename BatchedData, usize BatchedImageBinding, usize BatchedSamplerBinding>
-template<typename R>
-void StaticTextureBatch<TextureSize, BatchedData, BatchedImageBinding, BatchedSamplerBinding>::Render(R beforeDrawCall) {
-    if(IsEmpty()){
-        return;
-    } 
-
+void StaticTextureBatch<TextureSize, BatchedData, BatchedImageBinding, BatchedSamplerBinding>::Update() {
     if(m.batchDirty) {
         sg_image_data batchImageData{};
         batchImageData.subimage[0][0] = sg_range{ .ptr = m.batched->data(), .size = TotalByteSize };
         sg_update_image(m.batchedImage, &batchImageData);
         m.batchDirty = false;
     }
+}
+
+template<usize TextureSize, typename BatchedData, usize BatchedImageBinding, usize BatchedSamplerBinding>
+template<typename R>
+void StaticTextureBatch<TextureSize, BatchedData, BatchedImageBinding, BatchedSamplerBinding>::Render(R beforeDrawCall) {
+    if(IsEmpty()){
+        return;
+    } 
 
     sg_apply_pipeline(m.batchPipeline);
     sg_apply_bindings(m.batchBindings);
@@ -86,6 +93,7 @@ template<usize TextureSize, typename BatchedData, usize BatchedImageBinding, usi
 std::optional<StaticTextureBatch<TextureSize, BatchedData, BatchedImageBinding, BatchedSamplerBinding>> StaticTextureBatch<TextureSize, BatchedData, BatchedImageBinding, BatchedSamplerBinding>::Create(const sg_shader_desc* shaderDesc, const sg_bindings& preBindings) {
     static_assert(TextureSize > 0 && (TextureSize & 1) == 0, "Texture size must be a valid power of two and not zero"); 
 
+    // FIXME: Deallocate this
     if(detail::ShaderNonFilteringSamplerRef++ == 0) {
         sg_sampler_desc nonFilteringSamplerDesc{};
         nonFilteringSamplerDesc.label = "Shared Non Filtering Data Sampler";
@@ -96,8 +104,7 @@ std::optional<StaticTextureBatch<TextureSize, BatchedData, BatchedImageBinding, 
         detail::SharedNonFilteringSampler = sg_make_sampler(&nonFilteringSamplerDesc);
         
         if(sg_query_sampler_state(detail::SharedNonFilteringSampler) != SG_RESOURCESTATE_VALID) {
-            std::cout << "Unreachable??" << std::endl;
-            std::unreachable();
+            std::abort();
         }
     }
 

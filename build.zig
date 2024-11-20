@@ -19,6 +19,9 @@ const lib_sources = &[_][]const u8{
     "lib/GraphMatrix.cpp",
     "lib/GraphTypes.cpp",
     "lib/Algo/Hakimi.cpp",
+    "lib/Algo/Kruskal.cpp",
+    "lib/Algo/BFS.cpp",
+    "lib/Algo/DFS.cpp",
 };
 
 const app_c_sources = &[_][]const u8{"src/vendor.c"};

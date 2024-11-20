@@ -6,7 +6,10 @@ local lib = {
     "lib/Graph.cpp",
     "lib/GraphMatrix.cpp",
     "lib/GraphTypes.cpp",
-    "lib/Algo/Hakimi.cpp"
+    "lib/Algo/Hakimi.cpp",
+    "lib/Algo/Kruskal.cpp",
+    "lib/Algo/BFS.cpp",
+    "lib/Algo/DFS.cpp",
 }
 
 local app = {

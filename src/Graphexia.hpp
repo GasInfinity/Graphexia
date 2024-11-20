@@ -1,10 +1,13 @@
 #ifndef _GRAPHEXIA_APP_GRAPHEXIA__HPP_
 #define _GRAPHEXIA_APP_GRAPHEXIA__HPP_
 
-#include "GraphView.hpp"
-
 #include "Core.hpp"
+#include "GraphView.hpp"
 #include "GPXRenderer.hpp"
+
+#include <Graphexia/Algo/Kruskal.hpp>
+#include <Graphexia/Algo/BFS.hpp>
+#include <Graphexia/Algo/DFS.hpp>
 
 #include <sokol/sokol_app.h>
 #include <nuklear/nuklear.h>
@@ -50,6 +53,10 @@ private:
     char savedHavelHakimiSequence[256];
     bool renderHakimiRandom;
     std::vector<usize> havelHakimiSequence;
+
+    gpx::KruskalState kruskalState;
+    gpx::BFSState bfsState;
+    gpx::DFSState dfsState;
 };
 
 #endif
