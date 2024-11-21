@@ -11,7 +11,7 @@
 #include <random>
 
 Graphexia::Graphexia()
-    : view(gpx::CreateKComplete(4), CircularGraphViewRenderer({0,0}, 60, 4)), renderer(), mode(GraphexiaMode::EditVertices), selectedId(GraphView::NoId), savedHavelHakimiSequenceLength(), havelHakimiSequence() {
+    : view(gpx::CreateKComplete(4), CircularGraphViewRenderer({0,0}, 60, 4)), renderer(), mode(GraphexiaMode::EditVertices), selectedId(GraphView::NoId), movingCamera(false), savedHavelHakimiSequenceLength(), havelHakimiSequence() {
 }
 
 void Graphexia::Init() {
@@ -23,7 +23,7 @@ nk_bool FilterSequence(const nk_text_edit*, const nk_rune unicode) {
     return (unicode >= '0' && unicode <= '9') || unicode == ' ';
 }
 
-void Graphexia::Update(nk_context* ctx) {
+void Graphexia::Update(f32 dt, nk_context* ctx) {
     const gpx::Graph& graph = this->view.GetGraph();
     nk_style_hide_cursor(ctx);
 
@@ -39,7 +39,7 @@ void Graphexia::Update(nk_context* ctx) {
         nk_layout_row_dynamic(ctx, 14, 1);
         nk_label_wrap(ctx, "Built with sokol + nuklear");
 
-        nk_labelf(ctx, NK_TEXT_LEFT, "Frametime: %.2f | FPS: %.2f", sapp_frame_duration(), 1 / sapp_frame_duration());
+        nk_labelf(ctx, NK_TEXT_LEFT, "(Last) Frametime: %.2f | FPS: %.2f", dt, 1 / dt);
         nk_labelf(ctx, NK_TEXT_LEFT, "Camera at %.2f, %.2f", this->renderer.GetCameraPosition().x, this->renderer.GetCameraPosition().y);
         nk_labelf(ctx, NK_TEXT_LEFT, "Zoom: %.2f", this->renderer.GetCameraZoom());
 
@@ -160,9 +160,14 @@ void Graphexia::Update(nk_context* ctx) {
         }
 
         if(nk_tree_push(ctx, NK_TREE_TAB, "Search", NK_MINIMIZED)) {
+            nk_property_int(ctx, "From", 0, &this->initialVertex, graph.Vertices(), 1, 1);
+            nk_property_int(ctx, "To", -1, &this->endVertex, graph.Vertices(), 1, 1);
+
+            nk_spacer(ctx);
+
             if(nk_button_label(ctx, "Setup BFS")) {
                 this->ClearLastSelection();
-                this->bfsState = gpx::SetupBFS(this->view.GetGraph(), 0, std::nullopt);
+                this->bfsState = gpx::SetupBFS(this->view.GetGraph(), this->initialVertex, this->endVertex == -1 ? std::nullopt : std::make_optional(this->endVertex));
             }
 
             if(nk_button_label(ctx, "Iterate BFS")) {
@@ -177,14 +182,15 @@ void Graphexia::Update(nk_context* ctx) {
                     this->renderer.UpdateEdgeColor(edgeId, Rgba8(0x0000FFFF)); 
                 }
 
-                this->renderer.UpdateVertexColor(this->bfsState.visiting[this->bfsState.current - 1], Rgba8(0xFF0000FF));
+                if(!this->bfsState.visiting.empty())
+                    this->renderer.UpdateVertexColor(this->bfsState.visiting[this->bfsState.current - 1], Rgba8(0xFF0000FF));
             }
 
             nk_spacer(ctx);
 
             if(nk_button_label(ctx, "Setup DFS")) {
                 this->ClearLastSelection();
-                this->dfsState = gpx::SetupDFS(this->view.GetGraph(), 0, std::nullopt);
+                this->dfsState = gpx::SetupDFS(this->view.GetGraph(), this->initialVertex, this->endVertex == -1 ? std::nullopt : std::make_optional(this->endVertex));
             }
 
             if(nk_button_label(ctx, "Iterate DFS")) {
@@ -260,7 +266,7 @@ void Graphexia::Update(nk_context* ctx) {
     nk_end(ctx);
 
     this->renderer.SetViewport({static_cast<u32>(sapp_width()), static_cast<u32>(sapp_height())});
-    this->renderer.Update(view);
+    this->renderer.Update(dt, this->view, this->selectedId, this->selectionType);
 }
 
 void Graphexia::Render() {

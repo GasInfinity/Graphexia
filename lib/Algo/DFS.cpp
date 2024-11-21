@@ -44,6 +44,14 @@ namespace gpx {
             auto [vertexId, edgeId] = state.visiting.back();
             state.visiting.pop_back();
             
+            if(state.targetVertex && *state.targetVertex == vertexId) {
+                state.last = vertexId;
+                state.visiting.clear();
+                state.visitedVertices.insert(vertexId);
+                state.result.push_back(edgeId);
+                return true;
+            }
+
             // It may happen when graphs have loops!
             if(state.visitedVertices.contains(vertexId)) {
                 continue;

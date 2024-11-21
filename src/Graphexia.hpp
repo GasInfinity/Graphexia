@@ -18,7 +18,7 @@ public:
     Graphexia(); 
     
     void Init();
-    void Update(nk_context* ctx);
+    void Update(f32 dt, nk_context* ctx);
     void Render();
 
     void Event(const sapp_event* event);
@@ -55,6 +55,8 @@ private:
     std::vector<usize> havelHakimiSequence;
 
     gpx::KruskalState kruskalState;
+
+    i32 initialVertex, endVertex;
     gpx::BFSState bfsState;
     gpx::DFSState dfsState;
 };

@@ -5,6 +5,7 @@
 #include "GPXFontRenderer.hpp"
 #include "GraphView.hpp"
 #include "Render/StaticTextureBatch.hpp"
+#include "Util/EasingTask.hpp"
 
 #include <sokol/sokol_gfx.h>
 
@@ -29,10 +30,22 @@ struct BatchedEdge {
     u8x4 color;
 };
 
+template<typename T>
+struct AnimationTask {
+    constexpr AnimationTask() { }
+    constexpr AnimationTask(usize id, EasingTask<T>&& easingTask) : id(id), easingTask(std::move(easingTask)) { }
+
+    constexpr EasingTask<T>& Easing() { return this->easingTask; }
+    constexpr usize Id() const { return this->id; }
+private:
+    usize id;
+    EasingTask<T> easingTask;
+};
+
 class GPXRenderer final {
 public:
     void Init(u32x2 viewport);
-    void Update(const GraphView& view);
+    void Update(f32 dt, const GraphView& view, const usize selectedId, const SelectionType selectionType);
     void Render();
 
     void ReconstructView(const GraphView& view);
@@ -59,6 +72,7 @@ public:
     f32x2 ScreenToWorld(f32x2 screenPosition) const;
 private:
     void UpdateGlobalData();
+    void UpdateAnimations(f32 dt);
 
     u32x2 viewport;
     f32x2 cameraPosition;
@@ -66,7 +80,11 @@ private:
 
     StaticTextureBatch<BatchedVtxDimensions, BatchedVertex, IMG_VtxBatchDataTex, SMP_BatchDataSmp> batchedVertices; 
     StaticTextureBatch<BatchedEdgeDimensions, BatchedEdge, IMG_EdgeBatchDataTex, SMP_BatchDataSmp> batchedEdges; 
-    bool weightsDirty;
+
+    usize lastSelection;
+
+    std::vector<AnimationTask<f32>> vertexSizeAnimations;
+    std::vector<AnimationTask<f32>> edgeSizeAnimations;
 
     Graphexia_GlobalGraphData_t gGlobalData;
     GPXFontRenderer fontRenderer;

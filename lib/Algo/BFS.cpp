@@ -22,6 +22,7 @@ namespace gpx {
                 usize id = state.visiting[state.current++];
                 const std::vector<usize> edgesForVertex = graph.EdgesForVertex(id);
 
+                usize addedCount = 0;
                 for (usize adjacentEdge : edgesForVertex) {
                     const Edge& edge = edges[adjacentEdge];
                     usize adjacentVertex = edge.toId;
@@ -42,13 +43,18 @@ namespace gpx {
 
                     state.toVisit.push_back(adjacentVertex);
                     state.result.push_back(adjacentEdge);
-                    
+                    ++addedCount;
+
                     if(state.targetVertex && *state.targetVertex == adjacentVertex) { // We finished!
                         state.toVisit.clear();
                         state.visiting.clear();
                         state.current = 0;
                         return true;
                     }
+                }
+
+                if(addedCount == 0) { // This vertex didn't have anything interesting
+                    continue;
                 }
 
                 return false;

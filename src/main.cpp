@@ -42,7 +42,7 @@ void frame(void* userdata) {
     Graphexia* graphexia = static_cast<Graphexia*>(userdata);
 
     nk_context* nuklearContext = snk_new_frame();
-    graphexia->Update(nuklearContext);
+    graphexia->Update(sapp_frame_duration(), nuklearContext);
 
     sg_pass defaultPass{};
     defaultPass.action.colors[0].load_action = SG_LOADACTION_CLEAR;
