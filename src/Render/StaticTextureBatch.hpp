@@ -15,13 +15,11 @@ namespace detail {
     extern usize ShaderNonFilteringSamplerRef;
 } // namespace detail
 
-// FIXME: Add destructor
 template<usize TextureSize, typename BatchedData, usize BatchedImageBinding, usize BatchedSamplerBinding>
 class StaticTextureBatch final {
 private:
     constexpr static usize TotalByteSize = TextureSize * TextureSize * (sizeof(u32) * 4);
     constexpr static usize TotalBatchedSize = TotalByteSize / sizeof(BatchedData);
-
 
     struct M {
         sg_bindings batchBindings;
@@ -42,6 +40,8 @@ private:
     explicit StaticTextureBatch(M&& m) : m(std::move(m)) {}
 public:
     explicit StaticTextureBatch() : m({{},{},{},{},{},0,false}) {}
+    ~StaticTextureBatch();
+
     StaticTextureBatch(StaticTextureBatch<TextureSize, BatchedData, BatchedImageBinding, BatchedSamplerBinding>& other) = delete;
     StaticTextureBatch<TextureSize, BatchedData, BatchedImageBinding, BatchedSamplerBinding>& operator =(StaticTextureBatch<TextureSize, BatchedData, BatchedImageBinding, BatchedSamplerBinding>& other) = delete;
 
@@ -73,6 +73,20 @@ void StaticTextureBatch<TextureSize, BatchedData, BatchedImageBinding, BatchedSa
         batchImageData.subimage[0][0] = sg_range{ .ptr = m.batched->data(), .size = TotalByteSize };
         sg_update_image(m.batchedImage, &batchImageData);
         m.batchDirty = false;
+    }
+}
+
+template<usize TextureSize, typename BatchedData, usize BatchedImageBinding, usize BatchedSamplerBinding>
+StaticTextureBatch<TextureSize, BatchedData, BatchedImageBinding, BatchedSamplerBinding>::~StaticTextureBatch() {
+    if(m.batched) {
+        // We own everything, destroy what we have 
+        sg_destroy_pipeline(m.batchPipeline);
+        sg_destroy_shader(m.batchShader);
+        sg_destroy_image(m.batchedImage);
+
+        if(--detail::ShaderNonFilteringSamplerRef == 0) {
+            sg_destroy_sampler(detail::SharedNonFilteringSampler);
+        }
     }
 }
 
