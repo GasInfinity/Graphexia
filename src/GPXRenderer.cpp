@@ -95,10 +95,6 @@ void GPXRenderer::UpdateEdgeColor(usize id, u8x4 color) {
     m.batchedEdges.FlagDirty();
 }
 
-void GPXRenderer:: UpdateWeights() {
-    m.lastSelection = GraphView::NoId;
-}
-
 void GPXRenderer::EraseVertex(usize id) {
     const usize newSize = m.batchedVertices.BatchedCount() - 1;
 
@@ -109,7 +105,6 @@ void GPXRenderer::EraseVertex(usize id) {
     
     // FIXME: Remove animation if playing
     m.batchedVertices.SetBatchedCount(newSize);
-    m.lastSelection = GraphView::NoId;
 }
 
 void GPXRenderer::EraseEdge(usize id) {
@@ -128,28 +123,6 @@ void GPXRenderer::Update(f32 dt, const GraphView& view, const usize selectedId, 
 
     m.batchedEdges.Update();
     m.batchedVertices.Update();
-
-    if((selectionType & SelectionType::EdgeSelected) == SelectionType::EdgeSelected
-    && selectedId != m.lastSelection) {
-        m.fontRenderer.Clear();
-        m.fontRenderer.DrawText({-32.5, -6}, 12, "Graphexia");
-
-        if(selectedId != GraphView::NoId) {
-            const gpx::Edge& edge = view.GetGraph().Edges()[selectedId];
-            const Vertex& from = view.Vertices()[edge.fromId]; 
-            const Vertex& to = view.Vertices()[edge.toId]; 
-            f32 x = (from.position.x + to.position.x) / 2.f;
-            f32 y = (from.position.y + to.position.y) / 2.f - 3.f;
-
-            std::string weightString; // TODO: Cache this memory!
-            weightString.reserve(20);
-            std::format_to(std::back_inserter(weightString), "{:.2f}", edge.weight);
-            m.fontRenderer.DrawText({x, y}, 8, weightString);
-        }
-
-        m.lastSelection = selectedId;
-    }
-
     m.fontRenderer.Update();
 }
 
@@ -293,7 +266,6 @@ std::optional<GPXRenderer> GPXRenderer::Create(u32x2 initialViewport) {
         {},
         std::move(*batchedVertices),
         std::move(*batchedEdges),
-        GraphView::NoId,
         std::vector<AnimationTask<f32>>(),
         std::vector<AnimationTask<f32>>(),
         std::move(*fontRenderer)

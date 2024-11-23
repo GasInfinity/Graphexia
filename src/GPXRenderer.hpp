@@ -73,7 +73,6 @@ private:
         GPXShaderData graphShaderData;
         StaticTextureBatch<BatchedVtxDimensions, ShaderVertex, IMG_VtxBatchDataTex, SMP_BatchDataSmp> batchedVertices; 
         StaticTextureBatch<BatchedEdgeDimensions, ShaderEdge, IMG_EdgeBatchDataTex, SMP_BatchDataSmp> batchedEdges; 
-        usize lastSelection;
 
         std::vector<AnimationTask<f32>> vertexSizeAnimations;
         std::vector<AnimationTask<f32>> edgeSizeAnimations;
