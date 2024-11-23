@@ -1,4 +1,5 @@
 #include "GPXFontRenderer.hpp"
+#include "Render/StaticTextureBatch.hpp"
 #include "Util/BMFont.hpp"
 
 #include <cstdint>
@@ -6,42 +7,24 @@
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
+#include <optional>
 #include <stb/stb_image.h>
 
 #include <cassert>
 #include <fstream>
-
-// FIXME: Refactor!
-void GPXFontRenderer::Init(Graphexia_GlobalFontData_t* globalData) {
-    this->LoadFont("sans-serif");
-    this->globalData = globalData;
-
-    sg_sampler_desc fontSamplerDesc{};
-    fontSamplerDesc.label = "Font Sampler";
-    fontSamplerDesc.min_filter = SG_FILTER_LINEAR;
-    fontSamplerDesc.mag_filter = SG_FILTER_LINEAR;
-    fontSamplerDesc.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
-    fontSamplerDesc.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
-    this->fontSampler = sg_make_sampler(&fontSamplerDesc);
-
-    sg_bindings fontBindings{};
-    fontBindings.images[IMG_FontTex].id = this->fontAtlas.id;
-    fontBindings.samplers[SMP_TexSmp].id = this->fontSampler.id;
-
-    this->batchedCharacters = StaticTextureBatch<BatchedTextureChrDimensions, BatchedChrData, IMG_ChrBatchDataTex, SMP_BatchDataSmp>::Create(
-        Graphexia_BMFont_shader_desc(sg_query_backend()), fontBindings 
-    ).value();
-}
+#include <string_view>
+#include <utility>
 
 void GPXFontRenderer::DrawText(f32x2 position, f32 fontSize, std::string_view text) {
     f32x2 currentPosition = position;
 
-    f32 scale = std::min(fontSize / static_cast<f32>(this->font.Info().fontSize), 1.f);
+    f32 scale = std::min(fontSize / static_cast<f32>(m.font.Info().fontSize), 1.f);
     u16 unormScale = scale * UINT16_MAX;
 
-    auto& batchedCharactersData = this->batchedCharacters.Data();
-    usize currentBatched = this->batchedCharacters.BatchedCount();
-    for (char32_t chr : text) {
+    auto& batchedCharactersData = m.batchedCharacters.Data();
+    usize currentBatched = m.batchedCharacters.BatchedCount();
+    // TODO: Unicode? Not today at least...
+    for (char chr : text) {
         GlyphData& glyph = this->GetGlyphData(chr);
 
         u32 unormSizeHeight = unormScale << 16 | glyph.h;
@@ -56,61 +39,52 @@ void GPXFontRenderer::DrawText(f32x2 position, f32 fontSize, std::string_view te
         currentPosition.x += glyph.xAdvance * scale;
     }
 
-    this->batchedCharacters.SetBatchedCount(currentBatched);
+    m.batchedCharacters.SetBatchedCount(currentBatched);
 }
 
-// TODO
-void GPXFontRenderer::DrawCharacter(f32x2 position, f32 fontSize, char32_t chr) {
-    GlyphData& glyph = this->GetGlyphData(chr);
+// Ironically, it's less code duplication and achieves almost the same performance...
+// Just use DrawText
+void GPXFontRenderer::DrawCharacter(f32x2 position, f32 fontSize, char chr) {
+    DrawText(position, fontSize, std::string_view(&chr, 1));
 }
 
 void GPXFontRenderer::Clear() {
-    this->batchedCharacters.ClearBatched(); 
+    m.batchedCharacters.ClearBatched(); 
 }
 
 void GPXFontRenderer::Update() {
-    this->batchedCharacters.Update();
+    m.batchedCharacters.Update();
 }
 
 void GPXFontRenderer::Render() {
-    auto globals = this->globalData;
-    this->batchedCharacters.Render([&globals]() {
-        sg_apply_uniforms(UB_GlobalFontData, SG_RANGE(*globals));
+    auto globals = m.fontShaderData;
+    m.batchedCharacters.Render([&globals]() {
+        sg_apply_uniforms(UB_GlobalFontData, SG_RANGE(globals));
     });
 }
 
-GlyphData& GPXFontRenderer::GetGlyphData(char32_t chr) {
-    auto foundGlyph = this->glyphs.find(chr);
-    return foundGlyph != this->glyphs.end() ? foundGlyph->second : this->glyphs.at(U'�');
+GlyphData& GPXFontRenderer::GetGlyphData(char chr) {
+    auto foundGlyph = m.glyphs.find(chr);
+    return foundGlyph != m.glyphs.end() ? foundGlyph->second : m.glyphs.at(U'�');
 }
 
-void GPXFontRenderer::LoadFont(std::string_view fontName) {
+void GPXFontRenderer::UpdateFontShaderData(const GPXFontShaderData& fontShaderData) {
+    m.fontShaderData= fontShaderData;
+}
+
+std::optional<std::pair<BMFont, sg_image>> GPXFontRenderer::LoadFont(std::string_view fontName) {
     std::filesystem::path fontPath = "./assets/fonts/";
     fontPath /= fontName;
     std::ifstream defFile((fontPath / "def.fnt"));
-    this->font = BMFont::LoadFromStream(defFile);
+    const BMFont font = BMFont::LoadFromStream(defFile);
 
-    const BMCommon& common = this->font.Common();
-    const std::unordered_map<u32, BMChar>& chars = this->font.Chars();
-    this->glyphs.reserve(chars.size());
-
-    for (auto [id, ch] : chars) {
-        this->glyphs[id] = {
-            static_cast<f16>(ch.x / static_cast<f32>(common.scaleW)), static_cast<f16>(ch.y / static_cast<f32>(common.scaleH)),
-            static_cast<f16>((ch.x + ch.width) / static_cast<f32>(common.scaleW)), static_cast<f16>((ch.y + ch.height) / static_cast<f32>(common.scaleH)),
-            ch.height,
-            static_cast<i8>(ch.xOffset), static_cast<i8>(ch.yOffset),
-            static_cast<u16>(ch.xAdvance)
-        }; 
-    }
-    
-    const BMPage& first = this->font.Pages()[0];
-    std::clog << "Loading font atlas for " << this->font.Info().name << " at: " << (fontPath / first.file) << std::endl;
+    const BMPage& first = font.Pages()[0];
+    std::clog << "Loading font atlas for " << font.Info().name << " at: " << (fontPath / first.file) << std::endl;
     FILE* atlasImage = fopen((fontPath / first.file).c_str(), "rb");
 
     if(!atlasImage) {
         std::cerr << "Error opening atlas image" << std::endl;
-        std::abort();
+        return std::nullopt;
     }
 
     int w, h, c;
@@ -119,8 +93,10 @@ void GPXFontRenderer::LoadFont(std::string_view fontName) {
     if(!data) {
         std::cerr << "Error parsing png" << std::endl;
         std::cerr << stbi_failure_reason() << std::endl;
-        std::abort();
+        return std::nullopt;
     }
+
+    const BMCommon& common = font.Common();
 
     sg_image_desc fontAtlasDesc{};
     fontAtlasDesc.label = "Font Atlas";
@@ -130,8 +106,76 @@ void GPXFontRenderer::LoadFont(std::string_view fontName) {
     fontAtlasDesc.usage = SG_USAGE_IMMUTABLE;
     fontAtlasDesc.num_mipmaps = 1;
     fontAtlasDesc.data.subimage[0][0] = { .ptr = data, .size = static_cast<usize>(common.scaleW) * common.scaleH * 4 };
-    this->fontAtlas = sg_make_image(&fontAtlasDesc);
+    sg_image fontAtlas = sg_make_image(&fontAtlasDesc);
 
     stbi_image_free(data);
     fclose(atlasImage);
+
+    if(sg_query_image_state(fontAtlas) != SG_RESOURCESTATE_VALID) {
+        return std::nullopt;
+    }
+
+    return std::make_pair(font, fontAtlas);
 }
+
+std::optional<GPXFontRenderer> GPXFontRenderer::Create() {
+    std::optional<std::pair<BMFont, sg_image>> loadedFont = GPXFontRenderer::LoadFont("sans-serif");
+
+    if(!loadedFont) {
+        return std::nullopt;
+    }
+
+    BMFont& font = loadedFont->first;
+    sg_image fontAtlas = loadedFont->second;
+
+    const BMCommon& common = font.Common();
+    const std::unordered_map<u32, BMChar>& chars = font.Chars();
+    std::unordered_map<char32_t, GlyphData> glyphs;
+    glyphs.reserve(chars.size());
+
+    for (auto [id, ch] : chars) {
+        glyphs[id] = {
+            static_cast<f16>(ch.x / static_cast<f32>(common.scaleW)), static_cast<f16>(ch.y / static_cast<f32>(common.scaleH)),
+            static_cast<f16>((ch.x + ch.width) / static_cast<f32>(common.scaleW)), static_cast<f16>((ch.y + ch.height) / static_cast<f32>(common.scaleH)),
+            ch.height,
+            static_cast<i8>(ch.xOffset), static_cast<i8>(ch.yOffset),
+            static_cast<u16>(ch.xAdvance)
+        }; 
+    }
+
+    sg_sampler_desc fontSamplerDesc{};
+    fontSamplerDesc.label = "Font Sampler";
+    fontSamplerDesc.min_filter = SG_FILTER_LINEAR;
+    fontSamplerDesc.mag_filter = SG_FILTER_LINEAR;
+    fontSamplerDesc.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
+    fontSamplerDesc.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
+    sg_sampler fontSampler = sg_make_sampler(&fontSamplerDesc);
+
+    if(sg_query_sampler_state(fontSampler) != SG_RESOURCESTATE_VALID) {
+        return std::nullopt;
+    }
+
+    sg_bindings fontBindings{};
+    fontBindings.images[IMG_FontTex].id = fontAtlas.id;
+    fontBindings.samplers[SMP_TexSmp].id = fontSampler.id;
+
+    auto batchedCharacters = StaticTextureBatch<BatchedTextureChrDimensions, ShaderChrData, IMG_ChrBatchDataTex, SMP_BatchDataSmp>::Create(
+        Graphexia_BMFont_shader_desc(sg_query_backend()), fontBindings 
+    );
+
+    if(!batchedCharacters) {
+        sg_destroy_sampler(fontSampler);
+        return std::nullopt;
+    }
+
+    return GPXFontRenderer(M{
+        font,
+        std::move(glyphs),
+        {},
+        fontSampler,
+        fontAtlas,
+        fontBindings,
+        std::move(*batchedCharacters),
+    });
+}
+

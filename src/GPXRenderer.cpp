@@ -11,150 +11,128 @@
 #include <string>
 #include <vector>
 
-// FIXME: Check if failed to create shader and pipeline
-void GPXRenderer::Init(u32x2 viewport) {
-    this->viewport = viewport;
-    this->cameraPosition = {};
-    this->cameraZoom = 1;
-    this->UpdateGlobalData();
-
-    this->batchedVertices = StaticTextureBatch<BatchedVtxDimensions, BatchedVertex, IMG_VtxBatchDataTex, SMP_BatchDataSmp>::Create(
-        Graphexia_GraphVtx_shader_desc(sg_query_backend()), {}
-    ).value();
-
-    sg_bindings preEdgesBindings{};
-    preEdgesBindings.images[IMG_VtxBatchDataTex] = this->batchedVertices.BatchedImage();
-
-    this->batchedEdges = StaticTextureBatch<BatchedEdgeDimensions, BatchedEdge, IMG_EdgeBatchDataTex, SMP_BatchDataSmp>::Create(
-        Graphexia_GraphEdge_shader_desc(sg_query_backend()), preEdgesBindings 
-    ).value();
-
-    this->fontRenderer.Init(reinterpret_cast<Graphexia_GlobalFontData_t*>(&this->gGlobalData));
-    this->fontRenderer.DrawText({-32.5, -6}, 12, "Graphexia");
-}
-
 void GPXRenderer::ReconstructView(const GraphView& view) {
     const gpx::Graph& graph = view.GetGraph();
 
     if(!graph.Vertices()) {
-        this->batchedVertices.ClearBatched();
-        this->batchedEdges.ClearBatched();
+        m.batchedVertices.ClearBatched();
+        m.batchedEdges.ClearBatched();
         return;
     }
 
-    auto& batchedVtxData = this->batchedVertices.Data();
+    auto& batchedVtxData = m.batchedVertices.Data();
     const std::vector<Vertex>& vertexViews = view.Vertices();
 
-    this->vertexSizeAnimations.clear();
-    this->vertexSizeAnimations.reserve(vertexViews.size());
-    this->vertexSizeAnimations.resize(vertexViews.size());
+    m.vertexSizeAnimations.clear();
+    m.vertexSizeAnimations.reserve(vertexViews.size());
+    m.vertexSizeAnimations.resize(vertexViews.size());
 
     for (usize i = 0; i < vertexViews.size(); ++i) { 
         const Vertex& vertex = vertexViews[i];
 
         batchedVtxData.at(i) = {vertex.position, 0.f, Rgba8(0xFFFFFFFF)};
-        this->vertexSizeAnimations.at(i) = AnimationTask(i, EasingTask(0.f, 3.f, 0.4f, Easing::OutBack10));
+        m.vertexSizeAnimations.at(i) = AnimationTask(i, EasingTask(0.f, 3.f, 0.4f, Easing::OutBack10));
     }
-    this->batchedVertices.SetBatchedCount(vertexViews.size());
+    m.batchedVertices.SetBatchedCount(vertexViews.size());
 
-    auto& batchedEdgeData = this->batchedEdges.Data();
+    auto& batchedEdgeData = m.batchedEdges.Data();
     const std::vector<gpx::Edge>& edges = graph.Edges();
 
-    this->edgeSizeAnimations.clear();
-    this->edgeSizeAnimations.reserve(edges.size());
-    this->edgeSizeAnimations.resize(edges.size());
+    m.edgeSizeAnimations.clear();
+    m.edgeSizeAnimations.reserve(edges.size());
+    m.edgeSizeAnimations.resize(edges.size());
 
     for (usize i = 0; i < edges.size(); ++i) { 
         const gpx::Edge& edge = edges[i];
 
         batchedEdgeData.at(i) = {static_cast<u32>(edge.fromId), static_cast<u32>(edge.toId), static_cast<f32>(1), Rgba8(0xFFFFFFFF)};
-        this->edgeSizeAnimations.at(i) = AnimationTask(i, EasingTask(0.f, 1.f, 0.4f, Easing::OutBack10));
+        m.edgeSizeAnimations.at(i) = AnimationTask(i, EasingTask(0.f, 1.f, 0.4f, Easing::OutBack10));
     }
 
-    this->batchedEdges.SetBatchedCount(edges.size());
+    m.batchedEdges.SetBatchedCount(edges.size());
 }
 
 void GPXRenderer::ReconstructEdges(const std::vector<gpx::Edge>& edges) {
-    auto& batchedEdgeData = this->batchedEdges.Data();
+    auto& batchedEdgeData = m.batchedEdges.Data();
     for (usize i = 0; i < edges.size(); ++i) { 
         const gpx::Edge& edge = edges[i];
 
         batchedEdgeData.at(i) = {static_cast<u32>(edge.fromId), static_cast<u32>(edge.toId), static_cast<f32>(1), Rgba8(0xFFFFFFFF)};
     }
 
-    this->batchedEdges.SetBatchedCount(edges.size());
+    m.batchedEdges.SetBatchedCount(edges.size());
 }
 
 void GPXRenderer::AddVertex(const Vertex& view) {
-    usize id = this->batchedVertices.BatchedCount();
+    usize id = m.batchedVertices.BatchedCount();
 
-    this->vertexSizeAnimations.push_back(AnimationTask(id, EasingTask(0.f, 3.f, 0.4f, Easing::OutBack10)));
-    this->batchedVertices.Data().at(id) = {view.position, 0.f, Rgba8(0xFFFFFFFF)};
-    this->batchedVertices.SetBatchedCount(id + 1);
+    m.vertexSizeAnimations.push_back(AnimationTask(id, EasingTask(0.f, 3.f, 0.4f, Easing::OutBack10)));
+    m.batchedVertices.Data().at(id) = {view.position, 0.f, Rgba8(0xFFFFFFFF)};
+    m.batchedVertices.SetBatchedCount(id + 1);
 }
 
 void GPXRenderer::AddEdge(const gpx::Edge& edge) {
-    usize id = this->batchedEdges.BatchedCount();
+    usize id = m.batchedEdges.BatchedCount();
 
     // HACK: Assume less than UINT_MAX
-    this->edgeSizeAnimations.push_back(AnimationTask(id, EasingTask(0.f, 1.f, 0.4f, Easing::OutBack10)));
-    this->batchedEdges.Data().at(id) = {static_cast<u32>(edge.fromId), static_cast<u32>(edge.toId), 1, Rgba8(0xFFFFFFFF)};
-    this->batchedEdges.SetBatchedCount(id + 1);
+    m.edgeSizeAnimations.push_back(AnimationTask(id, EasingTask(0.f, 1.f, 0.4f, Easing::OutBack10)));
+    m.batchedEdges.Data().at(id) = {static_cast<u32>(edge.fromId), static_cast<u32>(edge.toId), 1, Rgba8(0xFFFFFFFF)};
+    m.batchedEdges.SetBatchedCount(id + 1);
 }
 
 void GPXRenderer::UpdateVertexPosition(usize id, f32x2 position) {
-    this->batchedVertices.Data().at(id).position = position;
-    this->batchedVertices.FlagDirty();
+    m.batchedVertices.Data().at(id).position = position;
+    m.batchedVertices.FlagDirty();
 }
 
 void GPXRenderer::UpdateVertexColor(usize id, u8x4 color) {
-    this->batchedVertices.Data().at(id).color = color;
-    this->batchedVertices.FlagDirty();
+    m.batchedVertices.Data().at(id).color = color;
+    m.batchedVertices.FlagDirty();
 }
 
 void GPXRenderer::UpdateEdgeColor(usize id, u8x4 color) {
-    this->batchedEdges.Data().at(id).color = color;
-    this->batchedEdges.FlagDirty();
+    m.batchedEdges.Data().at(id).color = color;
+    m.batchedEdges.FlagDirty();
 }
 
 void GPXRenderer:: UpdateWeights() {
-    this->lastSelection = GraphView::NoId;
+    m.lastSelection = GraphView::NoId;
 }
 
 void GPXRenderer::EraseVertex(usize id) {
-    const usize newSize = this->batchedVertices.BatchedCount() - 1;
+    const usize newSize = m.batchedVertices.BatchedCount() - 1;
 
-    auto& batchedVtxData = this->batchedVertices.Data();
+    auto& batchedVtxData = m.batchedVertices.Data();
     if(id != newSize) {
-        memmove(&batchedVtxData.at(id), &batchedVtxData.at(id + 1), (newSize - id) * sizeof(BatchedVertex));
+        memmove(&batchedVtxData.at(id), &batchedVtxData.at(id + 1), (newSize - id) * sizeof(ShaderVertex));
     }
     
     // FIXME: Remove animation if playing
-    this->batchedVertices.SetBatchedCount(newSize);
-    this->lastSelection = GraphView::NoId;
+    m.batchedVertices.SetBatchedCount(newSize);
+    m.lastSelection = GraphView::NoId;
 }
 
 void GPXRenderer::EraseEdge(usize id) {
-    const usize newSize = this->batchedEdges.BatchedCount() - 1;
+    const usize newSize = m.batchedEdges.BatchedCount() - 1;
 
-    auto& batchedEdgeData = this->batchedEdges.Data();
+    auto& batchedEdgeData = m.batchedEdges.Data();
     if(id != newSize) {
-        memmove(&batchedEdgeData.at(id), &batchedEdgeData.at(id + 1), (newSize - id) * sizeof(BatchedEdge));
+        memmove(&batchedEdgeData.at(id), &batchedEdgeData.at(id + 1), (newSize - id) * sizeof(ShaderEdge));
     }
 
-    this->batchedEdges.SetBatchedCount(newSize);
+    m.batchedEdges.SetBatchedCount(newSize);
 }
 
 void GPXRenderer::Update(f32 dt, const GraphView& view, const usize selectedId, const SelectionType selectionType) {
     this->UpdateAnimations(dt);
 
-    this->batchedEdges.Update();
-    this->batchedVertices.Update();
+    m.batchedEdges.Update();
+    m.batchedVertices.Update();
 
     if((selectionType & SelectionType::EdgeSelected) == SelectionType::EdgeSelected
-    && selectedId != this->lastSelection) {
-        this->fontRenderer.Clear();
-        this->fontRenderer.DrawText({-32.5, -6}, 12, "Graphexia");
+    && selectedId != m.lastSelection) {
+        m.fontRenderer.Clear();
+        m.fontRenderer.DrawText({-32.5, -6}, 12, "Graphexia");
 
         if(selectedId != GraphView::NoId) {
             const gpx::Edge& edge = view.GetGraph().Edges()[selectedId];
@@ -166,106 +144,158 @@ void GPXRenderer::Update(f32 dt, const GraphView& view, const usize selectedId, 
             std::string weightString; // TODO: Cache this memory!
             weightString.reserve(20);
             std::format_to(std::back_inserter(weightString), "{:.2f}", edge.weight);
-            this->fontRenderer.DrawText({x, y}, 8, weightString);
+            m.fontRenderer.DrawText({x, y}, 8, weightString);
         }
 
-        this->lastSelection = selectedId;
+        m.lastSelection = selectedId;
     }
 
-    this->fontRenderer.Update();
+    m.fontRenderer.Update();
 }
 
 void GPXRenderer::UpdateAnimations(f32 dt) {
-    for (usize i = this->vertexSizeAnimations.size(); i > 0; --i) {
+    for (usize i = m.vertexSizeAnimations.size(); i > 0; --i) {
         usize index = i - 1;
 
-        AnimationTask<f32>& sizeAnimation = this->vertexSizeAnimations[index];
+        AnimationTask<f32>& sizeAnimation = m.vertexSizeAnimations[index];
         EasingTask<f32>& sizeEasing = sizeAnimation.Easing();
 
         if(sizeEasing.Finished()) {
-            this->vertexSizeAnimations.erase(this->vertexSizeAnimations.begin() + index);
+            m.vertexSizeAnimations.erase(m.vertexSizeAnimations.begin() + index);
             continue;
         }
 
         f32 newSize = sizeEasing.Update(dt);
 
-        this->batchedVertices.Data().at(sizeAnimation.Id()).size = newSize;
-        this->batchedVertices.FlagDirty();
+        m.batchedVertices.Data().at(sizeAnimation.Id()).size = newSize;
+        m.batchedVertices.FlagDirty();
     }
 
-    for (usize i = this->edgeSizeAnimations.size(); i > 0; --i) {
+    for (usize i = m.edgeSizeAnimations.size(); i > 0; --i) {
         usize index = i - 1;
 
-        AnimationTask<f32>& sizeAnimation = this->edgeSizeAnimations[index];
+        AnimationTask<f32>& sizeAnimation = m.edgeSizeAnimations[index];
         EasingTask<f32>& sizeEasing = sizeAnimation.Easing();
 
         if(sizeEasing.Finished()) {
-            this->edgeSizeAnimations.erase(this->edgeSizeAnimations.begin() + index);
+            m.edgeSizeAnimations.erase(m.edgeSizeAnimations.begin() + index);
             continue;
         }
 
         f32 newSize = sizeEasing.Update(dt);
 
-        this->batchedEdges.Data().at(sizeAnimation.Id()).size = newSize;
-        this->batchedEdges.FlagDirty();
+        m.batchedEdges.Data().at(sizeAnimation.Id()).size = newSize;
+        m.batchedEdges.FlagDirty();
     }
 }
 
 void GPXRenderer::Render() {
-    this->fontRenderer.Render();
+    m.fontRenderer.Render();
 
-    auto globals = this->gGlobalData;
-    this->batchedEdges.Render([&globals]() {
+    auto globals = m.graphShaderData;
+    m.batchedEdges.Render([&globals]() {
         sg_apply_uniforms(UB_GlobalGraphData, SG_RANGE(globals));
     });
 
-    this->batchedVertices.Render([&globals]() {
+    m.batchedVertices.Render([&globals]() {
         sg_apply_uniforms(UB_GlobalGraphData, SG_RANGE(globals));
     });
 }
 
 void GPXRenderer::SetCameraZoom(f32 zoom) {
-    if(this->cameraZoom == zoom) {
+    if(m.cameraZoom == zoom) {
         return;
     }
 
-    this->cameraZoom = zoom;
-    this->UpdateGlobalData();
+    m.cameraZoom = zoom;
+    this->UpdateRendererData();
 }
 
 void GPXRenderer::SetCameraPosition(f32x2 position) {
-    if(this->cameraPosition.x == position.x
-    && this->cameraPosition.y == position.y) {
+    if(m.cameraPosition.x == position.x
+    && m.cameraPosition.y == position.y) {
         return;
     }
 
-    this->cameraPosition = position;
-    this->UpdateGlobalData();
+    m.cameraPosition = position;
+    this->UpdateRendererData();
 }
 
 void GPXRenderer::SetViewport(u32x2 viewport) {
-    if(this->viewport.x == viewport.x
-    && this->viewport.y == viewport.y) {
+    if(m.viewport.x == viewport.x
+    && m.viewport.y == viewport.y) {
         return;
     }
 
-    this->viewport = viewport;
-    this->UpdateGlobalData();
+    m.viewport = viewport;
+    this->UpdateRendererData();
 }
 
-void GPXRenderer::UpdateGlobalData() {
-    f32 vScaleX = 2.0f / this->viewport.x;
-    f32 vScaleY = -2.0f / this->viewport.y;
+void GPXRenderer::UpdateRendererData() {
+    f32 vScaleX = 2.0f / m.viewport.x;
+    f32 vScaleY = -2.0f / m.viewport.y;
 
-    f32 viewportMiddleX = this->viewport.x / 2.f;
-    f32 viewportMiddleY = this->viewport.y / 2.f;
-    this->gGlobalData = {
-        {vScaleX * this->cameraZoom, 0, 0, vScaleY * this->cameraZoom},
-        {vScaleX * (this->cameraPosition.x + viewportMiddleX) - 1, vScaleY * (this->cameraPosition.y + viewportMiddleY) + 1, 0, 0}
+    f32 viewportMiddleX = m.viewport.x / 2.f;
+    f32 viewportMiddleY = m.viewport.y / 2.f;
+    
+    // The matrix is column-major!
+    m.graphShaderData = {
+        vScaleX * m.cameraZoom, 0,
+        0, vScaleY * m.cameraZoom,
+        vScaleX * (m.cameraPosition.x + viewportMiddleX) - 1, vScaleY * (m.cameraPosition.y + viewportMiddleY) + 1,
+        0, 0
     };
+
+    m.fontRenderer.UpdateFontShaderData(GPXFontShaderData{
+        m.graphShaderData.m00, m.graphShaderData.m10, m.graphShaderData.m20,
+        m.graphShaderData.m01, m.graphShaderData.m11, m.graphShaderData.m21,
+        0.f, 0.f
+    });
 }
 
 f32x2 GPXRenderer::ScreenToWorld(f32x2 screenPosition) const {
-    f32 mW = this->viewport.x/2.f, mH = this->viewport.y/2.f;
-    return { (screenPosition.x - mW - this->cameraPosition.x) / this->cameraZoom, (screenPosition.y - mH - this->cameraPosition.y) / this->cameraZoom };
+    f32 mW = m.viewport.x/2.f, mH = m.viewport.y/2.f;
+    return { (screenPosition.x - mW - m.cameraPosition.x) / m.cameraZoom, (screenPosition.y - mH - m.cameraPosition.y) / m.cameraZoom };
+}
+
+std::optional<GPXRenderer> GPXRenderer::Create(u32x2 initialViewport) {
+    auto batchedVertices = StaticTextureBatch<BatchedVtxDimensions, ShaderVertex, IMG_VtxBatchDataTex, SMP_BatchDataSmp>::Create(
+        Graphexia_GraphVtx_shader_desc(sg_query_backend()), {}
+    );
+
+    if(!batchedVertices) {
+        return std::nullopt;
+    }
+
+    sg_bindings preEdgesBindings{};
+    preEdgesBindings.images[IMG_VtxBatchDataTex] = batchedVertices->BatchedImage();
+
+    auto batchedEdges = StaticTextureBatch<BatchedEdgeDimensions, ShaderEdge, IMG_EdgeBatchDataTex, SMP_BatchDataSmp>::Create(
+        Graphexia_GraphEdge_shader_desc(sg_query_backend()), preEdgesBindings 
+    );
+
+    if(!batchedEdges) {
+        return std::nullopt;
+    }
+
+    std::optional<GPXFontRenderer> fontRenderer = GPXFontRenderer::Create();
+
+    if(!fontRenderer) {
+        return std::nullopt;
+    }
+
+    fontRenderer->DrawText({-32.5, -6}, 12, "Graphexia");
+
+    return GPXRenderer(M{
+        initialViewport,
+        {0.f, 0.f},
+        1.f,
+        {},
+        std::move(*batchedVertices),
+        std::move(*batchedEdges),
+        GraphView::NoId,
+        std::vector<AnimationTask<f32>>(),
+        std::vector<AnimationTask<f32>>(),
+        std::move(*fontRenderer)
+    });
 }

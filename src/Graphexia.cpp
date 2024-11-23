@@ -15,7 +15,16 @@ Graphexia::Graphexia()
 }
 
 void Graphexia::Init() {
-    this->renderer.Init({static_cast<u32>(sapp_width()), static_cast<u32>(sapp_height())});
+    std::optional<GPXRenderer> renderer = GPXRenderer::Create({static_cast<u32>(sapp_width()), static_cast<u32>(sapp_height())});
+
+    if(!renderer) {
+        std::cerr << "Error creating Graphexia renderer!" << std::endl;
+        std::cerr << "TODO: Proper error reporting (std::expected?)" << std::endl;
+        std::cerr << "(Yes, you can kill me if you want for this)" << std::endl;
+        sapp_request_quit();
+    }
+
+    this->renderer = std::move(*renderer);
     this->renderer.ReconstructView(this->view);
 }
 

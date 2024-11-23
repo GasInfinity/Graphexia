@@ -13,7 +13,7 @@
 
 const usize BatchedTextureChrDimensions = 1024;
 
-struct BatchedChrData {
+struct ShaderChrData {
     f32x2 position;
     u32 unnormSizeHeight;
     u8x4 color;
@@ -32,30 +32,45 @@ struct GlyphData {
     u16 xAdvance;
 };
 
+struct GPXFontShaderData {
+    // Model View Matrix
+    f32 m00, m10, m20;
+    f32 m01, m11, m22;
+    f32 unused0, unused1;
+};
+
 class GPXFontRenderer {
 public:
-    void Init(Graphexia_GlobalFontData_t* global);
+    GPXFontRenderer() : m() {}
 
     void DrawText(f32x2 position, f32 fontSize, std::string_view text);
-    void DrawCharacter(f32x2 position, f32 fontSize, char32_t chr);
+    void DrawCharacter(f32x2 position, f32 fontSize, char chr);
     void Clear();
 
     void Update();
     void Render();
 
-    GlyphData& GetGlyphData(char32_t chr);
+    GlyphData& GetGlyphData(char chr);
+
+    void UpdateFontShaderData(const GPXFontShaderData& data);
+
+    static std::optional<GPXFontRenderer> Create();
 private:
-    void LoadFont(std::string_view fontName);
-    BMFont font;
-    std::unordered_map<u32, GlyphData> glyphs;
-    Graphexia_GlobalFontData_t* globalData;
+    // TODO: Migrate to std::expected?
+    static std::optional<std::pair<BMFont, sg_image>> LoadFont(std::string_view fontName);
 
-    sg_sampler fontSampler;
-    sg_image fontAtlas;
-    sg_bindings fontBindings;
-    StaticTextureBatch<BatchedTextureChrDimensions, BatchedChrData, IMG_ChrBatchDataTex, SMP_BatchDataSmp> batchedCharacters;
+    struct M {
+        BMFont font;
+        std::unordered_map<char32_t, GlyphData> glyphs;
 
-    BatchedChrData chrsData[(BatchedTextureChrDimensions * BatchedTextureChrDimensions) / 2];
+        GPXFontShaderData fontShaderData;
+        sg_sampler fontSampler;
+        sg_image fontAtlas;
+        sg_bindings fontBindings;
+        StaticTextureBatch<BatchedTextureChrDimensions, ShaderChrData, IMG_ChrBatchDataTex, SMP_BatchDataSmp> batchedCharacters;
+    } m;
+
+    GPXFontRenderer(M&& m) : m(std::move(m)) { }
 };
 
 #endif

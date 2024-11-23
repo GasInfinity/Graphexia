@@ -2,6 +2,7 @@
 #define _GRAPHEXIA_APP_GPXRENDERER__HPP_
 
 #include "Core.hpp"
+#include "GPXShaderData.hpp"
 #include "GPXFontRenderer.hpp"
 #include "GraphView.hpp"
 #include "Render/StaticTextureBatch.hpp"
@@ -17,19 +18,6 @@
 const usize BatchedVtxDimensions = 32;
 const usize BatchedEdgeDimensions = 1024;
 
-struct BatchedVertex {
-    f32x2 position;
-    f32 size;
-    u8x4 color; // RGBA8
-};
-
-struct BatchedEdge {
-    u32 fromId;
-    u32 toId;
-    f32 size;
-    u8x4 color;
-};
-
 template<typename T>
 struct AnimationTask {
     constexpr AnimationTask() { }
@@ -44,7 +32,8 @@ private:
 
 class GPXRenderer final {
 public:
-    void Init(u32x2 viewport);
+    GPXRenderer() : m() { }
+
     void Update(f32 dt, const GraphView& view, const usize selectedId, const SelectionType selectionType);
     void Render();
 
@@ -63,30 +52,37 @@ public:
     void EraseEdge(usize id);
 
     void SetCameraZoom(f32 zoom);
-    f32 GetCameraZoom() const { return this->cameraZoom; }
+    f32 GetCameraZoom() const { return m.cameraZoom; }
 
-    f32x2 GetCameraPosition() const { return this->cameraPosition; }
+    f32x2 GetCameraPosition() const { return m.cameraPosition; }
     void SetCameraPosition(f32x2 position);
 
     void SetViewport(u32x2 viewport);
     f32x2 ScreenToWorld(f32x2 screenPosition) const;
+
+    static std::optional<GPXRenderer> Create(u32x2 initialViewport);
 private:
-    void UpdateGlobalData();
+    void UpdateRendererData();
     void UpdateAnimations(f32 dt);
 
-    u32x2 viewport;
-    f32x2 cameraPosition;
-    f32 cameraZoom;
+    struct M {
+        u32x2 viewport;
+        f32x2 cameraPosition;
+        f32 cameraZoom;
 
-    StaticTextureBatch<BatchedVtxDimensions, BatchedVertex, IMG_VtxBatchDataTex, SMP_BatchDataSmp> batchedVertices; 
-    StaticTextureBatch<BatchedEdgeDimensions, BatchedEdge, IMG_EdgeBatchDataTex, SMP_BatchDataSmp> batchedEdges; 
+        GPXShaderData graphShaderData;
+        StaticTextureBatch<BatchedVtxDimensions, ShaderVertex, IMG_VtxBatchDataTex, SMP_BatchDataSmp> batchedVertices; 
+        StaticTextureBatch<BatchedEdgeDimensions, ShaderEdge, IMG_EdgeBatchDataTex, SMP_BatchDataSmp> batchedEdges; 
+        usize lastSelection;
 
-    usize lastSelection;
+        std::vector<AnimationTask<f32>> vertexSizeAnimations;
+        std::vector<AnimationTask<f32>> edgeSizeAnimations;
 
-    std::vector<AnimationTask<f32>> vertexSizeAnimations;
-    std::vector<AnimationTask<f32>> edgeSizeAnimations;
+        GPXFontRenderer fontRenderer;
+    } m;
 
-    Graphexia_GlobalGraphData_t gGlobalData;
-    GPXFontRenderer fontRenderer;
+    GPXRenderer(M&& m) : m(std::move(m)) { 
+        this->UpdateRendererData();
+    }
 };
 #endif
