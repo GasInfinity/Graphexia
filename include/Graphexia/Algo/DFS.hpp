@@ -3,6 +3,7 @@
 
 #include <Graphexia/Graph.hpp>
 
+#include <optional>
 #include <unordered_set>
 #include <vector>
 
