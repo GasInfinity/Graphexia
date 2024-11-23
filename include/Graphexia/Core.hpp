@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <cstddef>
-#include <Graphexia/vendor/half.hpp>
+#include <stdfloat>
 
 typedef uint8_t u8;
 typedef int8_t i8;
@@ -16,7 +16,7 @@ typedef int64_t i64;
 
 typedef size_t usize;
 
-typedef half_float::half f16;
+typedef std::float16_t f16;
 typedef float f32;
 typedef double f64;
 
