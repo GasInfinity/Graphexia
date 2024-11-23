@@ -6,7 +6,7 @@
 struct GPXShaderData {
     f32 m00, m10, m20;
     f32 m01, m11, m21;
-    f32 unused0, unused1;
+    f32 edgeFadeout, unused1;
 };
 
 struct ShaderVertex {

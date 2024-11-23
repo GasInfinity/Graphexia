@@ -30,10 +30,10 @@ layout(binding=0) uniform utexture2D VtxBatchDataTex;
 
 layout(binding=0) uniform GlobalGraphData {
     vec4 MVP1;
-    vec4 MVP2WithUnused;
+    vec4 MVP2WithEdgeFadeoutUnused;
 };
 
-const int VtxPerLine = 32;
+const int VtxPerLine = 1024;
 const int EdgesPerLine = 1024;
 
 ivec2 GetVtxPosition(int vtxId) { return ivec2(vtxId % VtxPerLine, vtxId / VtxPerLine); }
@@ -57,7 +57,7 @@ void main() {
     float size = uintBitsToFloat(vtxData.z);
     vec4 color = UnpackVec4(vtxData.w);
 
-    mat3x2 mvp = mat3x2(MVP1.xy, MVP1.zw, MVP2WithUnused.xy);
+    mat3x2 mvp = mat3x2(MVP1.xy, MVP1.zw, MVP2WithEdgeFadeoutUnused.xy);
     vec2 finalVertex = mvp * vec3((vtxVertex.xy * size) + position.xy, 1.0);
 
     gl_Position = vec4(finalVertex.xy, 0.0, 1.0);
@@ -75,7 +75,8 @@ void main() {
     float dst = 1.0 - dot(fVtx, fVtx);
     float t = smoothstep(0.0, fwidth(dst), dst);
 
-    oFragColor = fColor * t;
+    oFragColor = fColor;
+    oFragColor.a *= t;
 }
 
 @end
@@ -122,11 +123,11 @@ void main() {
     
     vec2 edgeVertex = fromVtxPosition + director * rawEdgeVertex.x + normal * size * rawEdgeVertex.y;
 
-    mat3x2 mvp = mat3x2(MVP1.xy, MVP1.zw, MVP2WithUnused.xy);
+    mat3x2 mvp = mat3x2(MVP1.xy, MVP1.zw, MVP2WithEdgeFadeoutUnused.xy);
     vec2 finalVertex = mvp * vec3(edgeVertex, 1.0);
 
     gl_Position = vec4(finalVertex.xy, 0.0, 1.0);
-    fColor = color;
+    fColor = color * MVP2WithEdgeFadeoutUnused.z;
 }
 
 @end

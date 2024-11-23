@@ -1,14 +1,18 @@
 #include "Graphexia.hpp"
 #include "Core.hpp"
+#include "GraphViewRenderer.hpp"
+#include "Graphexia/Graph.hpp"
 #include <Graphexia/GraphTypes.hpp>
 #include <Graphexia/Algo/Hakimi.hpp>
 
+#include <chrono>
 #include <sokol/sokol_gfx.h>
 
 #include <optional>
 #include <limits>
 #include <algorithm>
 #include <random>
+#include <iostream>
 
 Graphexia::Graphexia()
     : view(gpx::CreateKComplete(4), CircularGraphViewRenderer({0,0}, 60, 4)), renderer(), mode(GraphexiaMode::EditVertices), selectedId(GraphView::NoId), movingCamera(false), savedHavelHakimiSequenceLength(), havelHakimiSequence() {
@@ -85,11 +89,10 @@ void Graphexia::Update(f32 dt, nk_context* ctx) {
 
         nk_layout_row_dynamic(ctx, 14, 1);
         if(nk_tree_push(ctx, NK_TREE_TAB, "K Complete Graphs", NK_MINIMIZED)) {
-            nk_property_int(ctx, "K", 1, &this->savedSelectedKComplete, 400, 1, 1);
-            nk_property_int(ctx, "Radius", 1, &this->savedSelectedRadius, 2000, 1, 1);
+            nk_property_int(ctx, "K", 1, &this->savedSelectedKComplete, 1000, 1, 1);
 
             if(nk_button_label(ctx, "Render K Complete Graph")) {
-                this->view = GraphView(gpx::CreateKComplete(this->savedSelectedKComplete), CircularGraphViewRenderer({}, this->savedSelectedRadius, this->savedSelectedKComplete)); 
+                this->view = GraphView(gpx::CreateKComplete(this->savedSelectedKComplete), CircularGraphViewRenderer({}, 10.f + this->savedSelectedKComplete * 2.2f, this->savedSelectedKComplete));
                 this->renderer.ReconstructView(this->view);
                 this->selectionType = SelectionType::None;
                 this->selectedId = GraphView::NoId;
@@ -302,7 +305,7 @@ void Graphexia::Event(const sapp_event* event) {
         case SAPP_EVENTTYPE_MOUSE_SCROLL: {
             f32x2 lastWorldSpaceMouse = this->renderer.ScreenToWorld({event->mouse_x, event->mouse_y});
             bool zoomingIn = event->scroll_y > 0;
-            f32 newZoom = std::clamp(this->renderer.GetCameraZoom() * (zoomingIn ? 1.1f : 1/1.1f), .4f, 15.f);
+            f32 newZoom = std::clamp(this->renderer.GetCameraZoom() * (zoomingIn ? 1.1f : 1/1.1f), .8f, 15.f);
 
             this->renderer.SetCameraZoom(newZoom);
             f32x2 newWorldSpaceMouse = this->renderer.ScreenToWorld({event->mouse_x, event->mouse_y});

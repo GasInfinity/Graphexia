@@ -2,6 +2,9 @@
 #define _GRAPHEXIA_APP_CORE__HPP_
 
 #include <Graphexia/Core.hpp>
+#include <half/half.hpp>
+
+typedef half_float::half f16;
 
 struct u32x2 {
     u32 x, y;

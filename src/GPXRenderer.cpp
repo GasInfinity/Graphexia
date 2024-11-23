@@ -45,8 +45,8 @@ void GPXRenderer::ReconstructView(const GraphView& view) {
     for (usize i = 0; i < edges.size(); ++i) { 
         const gpx::Edge& edge = edges[i];
 
-        batchedEdgeData.at(i) = {static_cast<u32>(edge.fromId), static_cast<u32>(edge.toId), static_cast<f32>(1), Rgba8(0xFFFFFFFF)};
-        m.edgeSizeAnimations.at(i) = AnimationTask(i, EasingTask(0.f, 1.f, 0.4f, Easing::OutBack10));
+        batchedEdgeData.at(i) = {static_cast<u32>(edge.fromId), static_cast<u32>(edge.toId), static_cast<f32>(0.f), Rgba8(0xFFFFFFFF)};
+        m.edgeSizeAnimations.at(i) = AnimationTask(i, EasingTask(0.f, 0.5f, 0.4f, Easing::OutBack10));
     }
 
     m.batchedEdges.SetBatchedCount(edges.size());
@@ -57,7 +57,7 @@ void GPXRenderer::ReconstructEdges(const std::vector<gpx::Edge>& edges) {
     for (usize i = 0; i < edges.size(); ++i) { 
         const gpx::Edge& edge = edges[i];
 
-        batchedEdgeData.at(i) = {static_cast<u32>(edge.fromId), static_cast<u32>(edge.toId), static_cast<f32>(1), Rgba8(0xFFFFFFFF)};
+        batchedEdgeData.at(i) = {static_cast<u32>(edge.fromId), static_cast<u32>(edge.toId), static_cast<f32>(0.5f), Rgba8(0xFFFFFFFF)};
     }
 
     m.batchedEdges.SetBatchedCount(edges.size());
@@ -166,9 +166,12 @@ void GPXRenderer::Render() {
     m.fontRenderer.Render();
 
     auto globals = m.graphShaderData;
-    m.batchedEdges.Render([&globals]() {
-        sg_apply_uniforms(UB_GlobalGraphData, SG_RANGE(globals));
-    });
+
+    if(m.cameraZoom > 1.f) {
+        m.batchedEdges.Render([&globals]() {
+            sg_apply_uniforms(UB_GlobalGraphData, SG_RANGE(globals));
+        });
+    }
 
     m.batchedVertices.Render([&globals]() {
         sg_apply_uniforms(UB_GlobalGraphData, SG_RANGE(globals));
@@ -216,7 +219,7 @@ void GPXRenderer::UpdateRendererData() {
         vScaleX * m.cameraZoom, 0,
         0, vScaleY * m.cameraZoom,
         vScaleX * (m.cameraPosition.x + viewportMiddleX) - 1, vScaleY * (m.cameraPosition.y + viewportMiddleY) + 1,
-        0, 0
+        std::clamp(m.cameraZoom - 1.f, 0.f, .5f) * 2.f, 0
     };
 
     m.fontRenderer.UpdateFontShaderData(GPXFontShaderData{
