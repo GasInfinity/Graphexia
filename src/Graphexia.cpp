@@ -274,15 +274,10 @@ void Graphexia::Update(f32 dt, nk_context* ctx) {
                     if((this->selectionType & SelectionType::EdgeSelected) == SelectionType::EdgeSelected) {
                         const gpx::Edge& edge = graph.Edges()[this->selectedId];
                         f32& edgeWeight = this->view.EdgeWeight(this->selectedId); 
-                        f32 before = edgeWeight;
 
                         nk_label(ctx, "Edge", NK_TEXT_LEFT);
                         nk_labelf(ctx, NK_TEXT_LEFT, "%zu -> %zu", edge.fromId, edge.toId);
                         nk_property_float(ctx, "Weight", 0, &edgeWeight, std::numeric_limits<f32>::infinity(), 1.f, .1f);
-
-                        if(std::abs(before - edgeWeight) < 0.001) {
-                            this->renderer.UpdateWeights();
-                        }
                     } else if((this->selectionType & SelectionType::VertexSelected) == SelectionType::VertexSelected) {
                         nk_label(ctx, "Creating edge", NK_TEXT_LEFT);
                         nk_labelf(ctx, NK_TEXT_LEFT, "From ID: %zu", this->selectedId);
@@ -295,7 +290,7 @@ void Graphexia::Update(f32 dt, nk_context* ctx) {
     nk_end(ctx);
 
     this->renderer.SetViewport({static_cast<u32>(sapp_width()), static_cast<u32>(sapp_height())});
-    this->renderer.Update(dt, this->view, this->selectedId, this->selectionType);
+    this->renderer.Update(dt);
 }
 
 void Graphexia::Render() {

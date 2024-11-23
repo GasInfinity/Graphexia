@@ -118,7 +118,7 @@ void GPXRenderer::EraseEdge(usize id) {
     m.batchedEdges.SetBatchedCount(newSize);
 }
 
-void GPXRenderer::Update(f32 dt, const GraphView& view, const usize selectedId, const SelectionType selectionType) {
+void GPXRenderer::Update(f32 dt) {
     this->UpdateAnimations(dt);
 
     m.batchedEdges.Update();

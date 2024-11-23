@@ -34,7 +34,7 @@ class GPXRenderer final {
 public:
     GPXRenderer() : m() { }
 
-    void Update(f32 dt, const GraphView& view, const usize selectedId, const SelectionType selectionType);
+    void Update(f32 dt);
     void Render();
 
     void ReconstructView(const GraphView& view);
